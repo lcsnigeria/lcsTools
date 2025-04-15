@@ -1,6 +1,6 @@
 {
   "name": "lcs_tools",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A modular JavaScript utility library designed for scalable, efficient web development.",
   "main": "dist/lt.min.js",
   "files": [
@@ -30,8 +30,11 @@
     "@babel/core": "^7.26.10",
     "@babel/preset-env": "^7.26.9",
     "babel-loader": "^10.0.0",
+    "compression-webpack-plugin": "^11.1.0",
+    "css-loader": "^7.1.2",
     "jsdoc": "^4.0.4",
     "standard-version": "^9.5.0",
+    "style-loader": "^4.0.0",
     "webpack": "^5.98.0",
     "webpack-cli": "^5.1.4",
     "webpack-obfuscator": "^3.5.0"
