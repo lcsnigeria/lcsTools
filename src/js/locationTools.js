@@ -132,7 +132,7 @@ export async function lcsGetCurrentLocation(inputElement = false) {
     // Variables to track issues and permission status
     let LGCL_Alert_Has_Issue = false;
     let LGCL_Alert_Will_Ask_Permission = false;
-    let LGCL_Alert_Has_InputElement_Issue = false;
+    let LGCL_Alert_Has_InputElement_Issue = true;
 
     // Check if Geolocation is supported
     if (!("geolocation" in navigator)) {
@@ -142,6 +142,7 @@ export async function lcsGetCurrentLocation(inputElement = false) {
 
     // Validate if the input element exists
     if (inputElement !== false) {
+        LGCL_Alert_Has_InputElement_Issue = false;
         if (!(inputElement instanceof HTMLElement)) {
             LGCL_Alert_Has_InputElement_Issue = true;
             LGCL_Alert_Has_Issue = true;

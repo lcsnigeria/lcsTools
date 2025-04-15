@@ -160,7 +160,7 @@ export async function lcsGetCurrentLocation(inputElement = false) {
     // Variables to track issues and permission status
     let LGCL_Alert_Has_Issue = false;
     let LGCL_Alert_Will_Ask_Permission = false;
-    let LGCL_Alert_Has_InputElement_Issue = false;
+    let LGCL_Alert_Has_InputElement_Issue = true;
 
     // Check if Geolocation is supported
     if (!("geolocation" in navigator)) {
@@ -170,6 +170,7 @@ export async function lcsGetCurrentLocation(inputElement = false) {
 
     // Validate if the input element exists
     if (inputElement !== false) {
+        LGCL_Alert_Has_InputElement_Issue = false;
         if (!(inputElement instanceof HTMLElement)) {
             LGCL_Alert_Has_InputElement_Issue = true;
             LGCL_Alert_Has_Issue = true;
@@ -302,7 +303,7 @@ export const lcsLocationTools = true;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#lcsGetCurrentLocation">lcsGetCurrentLocation</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#createCityOptions">createCityOptions</a></li><li><a href="global.html#createCountryOptions">createCountryOptions</a></li><li><a href="global.html#createStateOptions">createStateOptions</a></li><li><a href="global.html#lcsArrayHasSimilarItems">lcsArrayHasSimilarItems</a></li><li><a href="global.html#lcsCapitalizeWords">lcsCapitalizeWords</a></li><li><a href="global.html#lcsClearLocalDatabase">lcsClearLocalDatabase</a></li><li><a href="global.html#lcsDBCache">lcsDBCache</a></li><li><a href="global.html#lcsDeleteLocalDatabaseData">lcsDeleteLocalDatabaseData</a></li><li><a href="global.html#lcsFetchCountrySelectionData">lcsFetchCountrySelectionData</a></li><li><a href="global.html#lcsFilterArraySimilarItems">lcsFilterArraySimilarItems</a></li><li><a href="global.html#lcsGenerateCodes">lcsGenerateCodes</a></li><li><a href="global.html#lcsGenerateCountrySelection">lcsGenerateCountrySelection</a></li><li><a href="global.html#lcsGetAllCities">lcsGetAllCities</a></li><li><a href="global.html#lcsGetAllCountries">lcsGetAllCountries</a></li><li><a href="global.html#lcsGetAllStates">lcsGetAllStates</a></li><li><a href="global.html#lcsGetCitiesFromLocalDatabase">lcsGetCitiesFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountriesFromLocalDatabase">lcsGetCountriesFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountriesLocalDatabase">lcsGetCountriesLocalDatabase</a></li><li><a href="global.html#lcsGetCountryCallingCode">lcsGetCountryCallingCode</a></li><li><a href="global.html#lcsGetCountryCallingCodeFromLocalDatabase">lcsGetCountryCallingCodeFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryCurrencyCode">lcsGetCountryCurrencyCode</a></li><li><a href="global.html#lcsGetCountryCurrencyCodeFromLocalDatabase">lcsGetCountryCurrencyCodeFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryFlag">lcsGetCountryFlag</a></li><li><a href="global.html#lcsGetCountryFlagFromLocalDatabase">lcsGetCountryFlagFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryISOCode">lcsGetCountryISOCode</a></li><li><a href="global.html#lcsGetCountryISOCodeFromLocalDatabase">lcsGetCountryISOCodeFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryOfficialName">lcsGetCountryOfficialName</a></li><li><a href="global.html#lcsGetCountryOfficialNameFromLocalDatabase">lcsGetCountryOfficialNameFromLocalDatabase</a></li><li><a href="global.html#lcsGetCurrentLocation">lcsGetCurrentLocation</a></li><li><a href="global.html#lcsGetLocalDatabaseData">lcsGetLocalDatabaseData</a></li><li><a href="global.html#lcsGetStatesFromLocalDatabase">lcsGetStatesFromLocalDatabase</a></li><li><a href="global.html#lcsHideSpinnerOverlay">lcsHideSpinnerOverlay</a></li><li><a href="global.html#lcsInitializeLocalDatabase">lcsInitializeLocalDatabase</a></li><li><a href="global.html#lcsShowSpinnerOverlay">lcsShowSpinnerOverlay</a></li><li><a href="global.html#lcsStoreCitiesInLocalDatabase">lcsStoreCitiesInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountriesInLocalDatabase">lcsStoreCountriesInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryCallingCodeInLocalDatabase">lcsStoreCountryCallingCodeInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryCurrencyCodeInLocalDatabase">lcsStoreCountryCurrencyCodeInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryFlagInLocalDatabase">lcsStoreCountryFlagInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryISOCodeInLocalDatabase">lcsStoreCountryISOCodeInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryOfficialNameInLocalDatabase">lcsStoreCountryOfficialNameInLocalDatabase</a></li><li><a href="global.html#lcsStoreLocalDatabaseData">lcsStoreLocalDatabaseData</a></li><li><a href="global.html#lcsStoreStatesInLocalDatabase">lcsStoreStatesInLocalDatabase</a></li><li><a href="global.html#lcsUpdateLocalDatabaseData">lcsUpdateLocalDatabaseData</a></li></ul>
 </nav>
 
 <br class="clear">
