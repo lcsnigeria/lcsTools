@@ -24,7 +24,8 @@ module.exports = {
     library: {
       name: 'lcsTools', // Name of the global variable for the library
       type: 'umd'       // Universal Module Definition for CommonJS, AMD, and browser compatibility
-    }
+    },
+    globalObject: 'this' // Important for UMD to work in both Node and browser
   },
 
   // Module rules
@@ -58,7 +59,7 @@ module.exports = {
       compact: true,                    // Output compact code to reduce size
       controlFlowFlattening: false,     // Avoid altering control flow to maintain performance
       deadCodeInjection: false,         // Don't inject fake code to keep bundle lean
-      stringArrayEncoding: ['base64', 'rc4'],       // Disable base64 encoding to avoid size increase
+      stringArrayEncoding: ['base64'],  // Enable base64 encoding for obfuscation (may increase bundle size)
       stringArrayThreshold: 0.5,        // Apply string obfuscation to 50% of strings for balanced security
       splitStrings: false,              // Disable splitting strings to reduce overhead
       splitStringsChunkLength: 3,       // Ignored since splitStrings is false

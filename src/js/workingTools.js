@@ -4,7 +4,7 @@
  * @param {string} str - The input string to capitalize.
  * @returns {string|boolean} The capitalized string or false if invalid input.
  */
-export function lcsCapitalizeWords (str) {
+export function capitalizeWords(str) {
     if (!str || !/^[A-Za-z\s]+$/.test(str)) return false;
     return str
         .split(' ')
@@ -21,7 +21,7 @@ export function lcsCapitalizeWords (str) {
  * @returns {string} The generated code.
  * @throws {Error} Throws an error if the type is invalid or length is not a positive number.
  */
-export function lcsGenerateCodes (type = 'mixed', length = 8, includeSpecialChars = false) {
+export function generateCodes(type = 'mixed', length = 8, includeSpecialChars = false) {
     if (!['number', 'letters', 'mixed'].includes(type)) {
         throw new Error("Invalid type. Allowed values are 'number', 'letters', or 'mixed'.");
     }
@@ -62,12 +62,12 @@ export function lcsGenerateCodes (type = 'mixed', length = 8, includeSpecialChar
  * @param {string|string[]} ItemsParam - The item(s) to check for similarity.
  * @returns {boolean} True if at least one similar item is found, false otherwise.
  */
-export function lcsArrayHasSimilarItems (ArrayParam, ItemsParam) {
+export function arrayHasSimilarItems(ArrayParam, ItemsParam) {
     if (!Array.isArray(ItemsParam)) {
         ItemsParam = [ItemsParam];
     }
 
-    const normalizedItems = ItemsParam.map(item => lcsCapitalizeWords(item).toLowerCase());
+    const normalizedItems = ItemsParam.map(item => capitalizeWords(item).toLowerCase());
 
     return ArrayParam.some(aItem =>
         normalizedItems.some(nItem => aItem.toLowerCase().includes(nItem))
@@ -83,7 +83,7 @@ export function lcsArrayHasSimilarItems (ArrayParam, ItemsParam) {
  * @param {boolean} [returnPrimaryItemsIfNoMatch=false] - If true and no matches are found, return the original ArrayParam instead.
  * @returns {string[]|string|undefined} Filtered matching items, the first match if comparation is single, or the full list if no match and fallback is enabled.
  */
-export function lcsFilterArraySimilarItems (
+export function filterArraySimilarItems(
     ArrayParam,
     ItemsParam,
     returnSingleIfComparationIsSingle = false,
@@ -96,7 +96,7 @@ export function lcsFilterArraySimilarItems (
     }
 
     const normalizedItems = ItemsParam.map(item =>
-        String(lcsCapitalizeWords(item)).toLowerCase()
+        String(capitalizeWords(item)).toLowerCase()
     );
 
     const itemsResult = ArrayParam.filter(aItem => {

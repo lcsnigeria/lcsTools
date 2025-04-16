@@ -27,7 +27,7 @@ LCS Tools is a collection of ready-to-use JavaScript tools designed to enhance U
 <script src="https://unpkg.com/lcs_tools@latest/dist/lt.min.js"></script>
 <script>
   // Access via global namespace
-  lcsTools.lcsGetCurrentLocation().then(console.log);
+  lcsTools.getCurrentLocation().then(console.log);
 </script>
 ```
 
@@ -45,22 +45,22 @@ Then in your code:
 
 ```js
 // ESModule
-import { lcsGetCurrentLocation } from 'lcs_tools';
+import { getCurrentLocation } from 'lcs_tools';
 
 // CommonJS
-const { lcsGetCurrentLocation } = require('lcs_tools');
+const { getCurrentLocation } = require('lcs_tools');
 ```
 
 ---
 
 ## 🚀 Usage Examples
 
-### 📍 `lcsGetCurrentLocation()`
+### 📍 `getCurrentLocation()`
 
 Fetch the current browser location with graceful fallback:
 
 ```js
-lcsTools.lcsGetCurrentLocation()
+lcsTools.getCurrentLocation()
   .then((locationText) => {
     console.log('Your location:', locationText);
   })

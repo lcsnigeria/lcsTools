@@ -3,7 +3,7 @@ let lcsLocationToolsByClassName = false;
 /**
  * Handles click events on elements with the class "lcsGetCurrentLocation" to retrieve and set the user's current location.
  * 
- * Uses the lcsGetCurrentLocation function
+ * Uses the getCurrentLocation function
  * 
  * Usage Example:
  * ```html
@@ -23,7 +23,7 @@ document.addEventListener("click", async (event) => {
     const inputElementID = triggerButton.dataset.get_value;
     const inputElement = document.getElementById(inputElementID);
     lcsLocationToolsByClassName = true;
-    await lcsGetCurrentLocation(inputElement);
+    await getCurrentLocation(inputElement);
     lcsLocationToolsByClassName = false;
 });
 
@@ -64,17 +64,17 @@ document.addEventListener("click", async (event) => {
  * ```javascript
  * // With an input element
  * const input = document.getElementById("locationInput");
- * await lcsGetCurrentLocation(input); // Updates input with address
+ * await lcsTools.getCurrentLocation(input); // Updates input with address
  *
  * // Without an input element
- * const address = await lcsGetCurrentLocation(false); // Returns address
+ * const address = await lcsTools.getCurrentLocation(false); // Returns address
  * ```
  *
  * @param {HTMLElement|false} [inputElement=false] - The HTML element to update with the address, or `false` if no update is needed.
  * @returns {Promise<string|null>} A promise that resolves to the retrieved address string or `null` if the process fails silently.
  * @throws {Error} Throws an error internally (caught and handled) if geolocation or API calls fail.
  */
-export async function lcsGetCurrentLocation(inputElement = false) {
+export async function getCurrentLocation(inputElement = false) {
     // Create Alert Modal
     const LGCL_Alert_Modal = document.createElement("div");
     Object.assign(LGCL_Alert_Modal.style, {

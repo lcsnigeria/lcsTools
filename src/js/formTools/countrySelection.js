@@ -3,21 +3,21 @@ import '../../css/formTools/countrySelection.css';
 
 // Importing utility functions for string manipulation and code generation
 import { 
-    lcsCapitalizeWords, lcsFilterArraySimilarItems, lcsGenerateCodes
+    capitalizeWords, filterArraySimilarItems, generateCodes
 } from '../workingTools.js';
 
 // Importing functions for interacting with the local database
-import { lcsGetLocalDatabaseData, lcsUpdateLocalDatabaseData } from '../dataStorage/localDatabase.js';
+import { getLocalDatabaseData, updateLocalDatabaseData } from '../dataStorage/localDatabase.js';
 
 /**
  * Retrieves the local country database from local database.
  * @returns {Object} The parsed country database object.
  */
-export async function lcsGetCountriesLocalDatabase () {
-    let DB = await lcsGetLocalDatabaseData('lcsCountrySelectionLocalDataBase');
+export async function getCountriesLocalDatabase () {
+    let DB = await getLocalDatabaseData('lcsCountrySelectionLocalDataBase');
     if (!DB) {
         DB = JSON.stringify({});
-        await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', DB);
+        await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', DB);
     }
     return JSON.parse(DB);
 };
@@ -29,7 +29,7 @@ export async function lcsGetCountriesLocalDatabase () {
  */
 async function lcsStoreCountriesInLocalDatabase (Countries) {
     Countries = Array.isArray(Countries) ? Countries : [Countries];
-    const countriesLocalDB = await lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = await getCountriesLocalDatabase();
     const storedCountries = Object.keys(countriesLocalDB);
 
     Countries.forEach(c => {
@@ -38,7 +38,7 @@ async function lcsStoreCountriesInLocalDatabase (Countries) {
         }
     });
 
-    await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -48,7 +48,7 @@ async function lcsStoreCountriesInLocalDatabase (Countries) {
  * @param {string} officialName - The official name of the country.
  */
 function lcsStoreCountryOfficialNameInLocalDatabase (commonName, officialName) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
 
     if (!countriesLocalDB[commonName]) {
         countriesLocalDB[commonName] = {};
@@ -56,7 +56,7 @@ function lcsStoreCountryOfficialNameInLocalDatabase (commonName, officialName) {
 
     countriesLocalDB[commonName].officialName = officialName;
 
-    lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -66,7 +66,7 @@ function lcsStoreCountryOfficialNameInLocalDatabase (commonName, officialName) {
  */
 async function lcsStoreStatesInLocalDatabase (Country, States) {
     States = Array.isArray(States) ? States : [States];
-    const countriesLocalDB = await lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = await getCountriesLocalDatabase();
 
     if (!countriesLocalDB[Country]) {
         countriesLocalDB[Country] = {};
@@ -74,7 +74,7 @@ async function lcsStoreStatesInLocalDatabase (Country, States) {
 
     countriesLocalDB[Country].states = [...new Set([...(countriesLocalDB[Country].states || []), ...States])];
 
-    await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -85,7 +85,7 @@ async function lcsStoreStatesInLocalDatabase (Country, States) {
  */
 async function lcsStoreCitiesInLocalDatabase (Country, State, Cities) {
     Cities = Array.isArray(Cities) ? Cities : [Cities];
-    const countriesLocalDB = await lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = await getCountriesLocalDatabase();
 
     if (!countriesLocalDB[Country]) {
         countriesLocalDB[Country] = {};
@@ -101,7 +101,7 @@ async function lcsStoreCitiesInLocalDatabase (Country, State, Cities) {
 
     countriesLocalDB[Country].cities[State] = [...new Set([...(countriesLocalDB[Country].cities[State] || []), ...Cities])];
 
-    await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -110,7 +110,7 @@ async function lcsStoreCitiesInLocalDatabase (Country, State, Cities) {
  * @param {string} FlagUrl - The URL of the country flag.
  */
 async function lcsStoreCountryFlagInLocalDatabase (Country, FlagUrl) {
-    const countriesLocalDB = await lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = await getCountriesLocalDatabase();
 
     if (!countriesLocalDB[Country]) {
         countriesLocalDB[Country] = {};
@@ -118,7 +118,7 @@ async function lcsStoreCountryFlagInLocalDatabase (Country, FlagUrl) {
 
     countriesLocalDB[Country].flag = FlagUrl;
 
-    await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -127,7 +127,7 @@ async function lcsStoreCountryFlagInLocalDatabase (Country, FlagUrl) {
  * @param {string} CallingCode - The calling code to store.
  */
 async function lcsStoreCountryCallingCodeInLocalDatabase (Country, CallingCode) {
-    const countriesLocalDB = await lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = await getCountriesLocalDatabase();
 
     if (!countriesLocalDB[Country]) {
         countriesLocalDB[Country] = {};
@@ -135,7 +135,7 @@ async function lcsStoreCountryCallingCodeInLocalDatabase (Country, CallingCode) 
 
     countriesLocalDB[Country].callingCode = CallingCode;
 
-    await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -144,7 +144,7 @@ async function lcsStoreCountryCallingCodeInLocalDatabase (Country, CallingCode) 
  * @param {string} CurrencyCode - The currency code to store.
  */
 async function lcsStoreCountryCurrencyCodeInLocalDatabase (Country, CurrencyCode) {
-    const countriesLocalDB = await lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = await getCountriesLocalDatabase();
 
     if (!countriesLocalDB[Country]) {
         countriesLocalDB[Country] = {};
@@ -152,7 +152,7 @@ async function lcsStoreCountryCurrencyCodeInLocalDatabase (Country, CurrencyCode
 
     countriesLocalDB[Country].currencyCode = CurrencyCode;
 
-    await lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    await updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -162,7 +162,7 @@ async function lcsStoreCountryCurrencyCodeInLocalDatabase (Country, CurrencyCode
  * @param {Object} isoCodes - An object containing the ISO codes (e.g., { alpha2: 'NG', alpha3: 'NGA' }).
  */
 function lcsStoreCountryISOCodeInLocalDatabase(countryName, isoCodes) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
 
     if (!countriesLocalDB[countryName]) {
         countriesLocalDB[countryName] = {};
@@ -173,7 +173,7 @@ function lcsStoreCountryISOCodeInLocalDatabase(countryName, isoCodes) {
         ...isoCodes
     };
 
-    lcsUpdateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
+    updateLocalDatabaseData('lcsCountrySelectionLocalDataBase', JSON.stringify(countriesLocalDB));
 };
 
 /**
@@ -181,7 +181,7 @@ function lcsStoreCountryISOCodeInLocalDatabase(countryName, isoCodes) {
  * @returns {string[]} Array of country names.
  */
 function lcsGetCountriesFromLocalDatabase() {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return Object.keys(countriesLocalDB);
 };
 
@@ -192,7 +192,7 @@ function lcsGetCountriesFromLocalDatabase() {
  * @returns {string|null} The official name or null if not found.
  */
 function lcsGetCountryOfficialNameFromLocalDatabase(commonName) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[commonName]?.officialName || null;
 };
 
@@ -202,7 +202,7 @@ function lcsGetCountryOfficialNameFromLocalDatabase(commonName) {
  * @returns {string[]} Array of state names or empty array if none exist.
  */
 function lcsGetStatesFromLocalDatabase(Country) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[Country]?.states || [];
 };
 
@@ -213,7 +213,7 @@ function lcsGetStatesFromLocalDatabase(Country) {
  * @returns {string[]} Array of city names or empty array if none exist.
  */
 function lcsGetCitiesFromLocalDatabase(Country, State) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[Country]?.cities?.[State] || [];
 };
 
@@ -223,7 +223,7 @@ function lcsGetCitiesFromLocalDatabase(Country, State) {
  * @returns {string|null} The flag URL or null if not found.
  */
 function lcsGetCountryFlagFromLocalDatabase(Country) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[Country]?.flag || null;
 };
 
@@ -233,7 +233,7 @@ function lcsGetCountryFlagFromLocalDatabase(Country) {
  * @returns {string|null} The calling code or null if not found.
  */
 function lcsGetCountryCallingCodeFromLocalDatabase(Country) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[Country]?.callingCode || null;
 };
 
@@ -243,7 +243,7 @@ function lcsGetCountryCallingCodeFromLocalDatabase(Country) {
  * @returns {string|null} The currency code or null if not found.
  */
 function lcsGetCountryCurrencyCodeFromLocalDatabase(Country) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[Country]?.currencyCode || null;
 };
 
@@ -255,7 +255,7 @@ function lcsGetCountryCurrencyCodeFromLocalDatabase(Country) {
  * @returns {string|null} The ISO code or null if not found.
  */
 function lcsGetCountryISOCodeFromLocalDatabase(countryName, codeType) {
-    const countriesLocalDB = lcsGetCountriesLocalDatabase();
+    const countriesLocalDB = getCountriesLocalDatabase();
     return countriesLocalDB[countryName]?.isoCodes?.[codeType] || null;
 };
 
@@ -332,14 +332,14 @@ function lcsHideSpinnerOverlay(selectionContainer) {
  * @param {string[]} [neededCountries] - Optional list of countries to filter the results.
  * @returns {Promise<string[]>} A promise resolving to a list of capitalized country names.
  */
-export async function lcsGetAllCountries (serviceProviderData, neededCountries = []) {
+export async function getAllCountries (serviceProviderData, neededCountries = []) {
     return new Promise(async (resolve, reject) => {
         // Check local database first
         let LDB_items = lcsGetCountriesFromLocalDatabase();
         if (LDB_items.length > 0) {
             const considerNeeded = Array.isArray(neededCountries) && neededCountries.length > 0;
             if (considerNeeded) {
-                LDB_items = lcsFilterArraySimilarItems(LDB_items, neededCountries, false, true);
+                LDB_items = filterArraySimilarItems(LDB_items, neededCountries, false, true);
             }
             resolve(LDB_items);
         }
@@ -391,17 +391,17 @@ export async function lcsGetAllCountries (serviceProviderData, neededCountries =
             switch (serviceProvider) {
                 case 'countriesNow':
                     countriesResult = response.data
-                        .map(country => lcsCapitalizeWords(country.name))
+                        .map(country => capitalizeWords(country.name))
                         .filter(Boolean);
                     break;
                 case 'countryStateCity':
                     countriesResult = response
-                        .map(country => lcsCapitalizeWords(country.name))
+                        .map(country => capitalizeWords(country.name))
                         .filter(Boolean);
                     break;
                 case 'geoNames':
                     countriesResult = (response.geonames || [])
-                        .map(country => lcsCapitalizeWords(country.countryName))
+                        .map(country => capitalizeWords(country.countryName))
                         .filter(Boolean);
                     break;
                 default:
@@ -413,7 +413,7 @@ export async function lcsGetAllCountries (serviceProviderData, neededCountries =
 
             const considerNeeded = Array.isArray(neededCountries) && neededCountries.length > 0;
             if (considerNeeded) {
-                countriesResult = lcsFilterArraySimilarItems(countriesResult, neededCountries, false, true);
+                countriesResult = filterArraySimilarItems(countriesResult, neededCountries, false, true);
             }
 
             resolve(countriesResult);
@@ -430,7 +430,7 @@ export async function lcsGetAllCountries (serviceProviderData, neededCountries =
  * @param {string} commonName - The common name of the country to find the official name for.
  * @returns {Promise<string|null>} A promise resolving to the official name or null if not found.
  */
-export async function lcsGetCountryOfficialName (serviceProviderData, commonName) {
+export async function getCountryOfficialName (serviceProviderData, commonName) {
     // Check local database first
     const LDB_officialName = lcsGetCountryOfficialNameFromLocalDatabase(commonName);
     if (LDB_officialName) {
@@ -474,14 +474,14 @@ export async function lcsGetCountryOfficialName (serviceProviderData, commonName
 
         switch (serviceProvider) {
             case 'restCountries':
-                const countryRest = Array.isArray(response) ? response.find(c => lcsCapitalizeWords(c.name.common) === commonName) : null;
+                const countryRest = Array.isArray(response) ? response.find(c => capitalizeWords(c.name.common) === commonName) : null;
                 if (countryRest && countryRest.name?.official) {
                     officialNameResult = countryRest.name.official;
                 }
                 break;
 
             case 'geoNames':
-                const countryGeo = (response.geonames || []).find(c => lcsCapitalizeWords(c.countryName) === commonName);
+                const countryGeo = (response.geonames || []).find(c => capitalizeWords(c.countryName) === commonName);
                 if (countryGeo && countryGeo.countryName) {
                     officialNameResult = countryGeo.countryName;
                 }
@@ -492,7 +492,7 @@ export async function lcsGetCountryOfficialName (serviceProviderData, commonName
                     throw new Error(`No data returned from countriesNow for ${commonName}`);
                 }
                 if (typeof response.data === 'object' && response.data.name) {
-                    if (lcsCapitalizeWords(response.data.name) === commonName) {
+                    if (capitalizeWords(response.data.name) === commonName) {
                         officialNameResult = response.data.name;
                     } else {
                         throw new Error(`Country ${commonName} not found in countriesNow response`);
@@ -524,14 +524,14 @@ export async function lcsGetCountryOfficialName (serviceProviderData, commonName
  * @param {string[]} [neededStates] - Optional list of states to filter the results.
  * @returns {Promise<string[]>} A promise resolving to a list of capitalized state names.
  */
-export async function lcsGetAllStates (serviceProviderData, Country, neededStates = []) {
+export async function getAllStates (serviceProviderData, Country, neededStates = []) {
     return new Promise(async (resolve, reject) => {
         try {
             // Check local database first
             let LDB_states = lcsGetStatesFromLocalDatabase(Country);
             if (LDB_states.length > 0) {
                 if (Array.isArray(neededStates) && neededStates.length > 0) {
-                    LDB_states = lcsFilterArraySimilarItems(LDB_states, neededStates, false, true);
+                    LDB_states = filterArraySimilarItems(LDB_states, neededStates, false, true);
                 }
                 resolve(LDB_states);
             }
@@ -549,7 +549,7 @@ export async function lcsGetAllStates (serviceProviderData, Country, neededState
 
             let statesResult = [];
 
-            const countryISOCode = await lcsGetCountryISOCode(serviceProviderData, Country, 'alpha2');
+            const countryISOCode = await getCountryISOCode(serviceProviderData, Country, 'alpha2');
 
             // Define request data for each provider
             const statesRequestData = {
@@ -595,7 +595,7 @@ export async function lcsGetAllStates (serviceProviderData, Country, neededState
                 case 'countriesNow':
                     if (stateResponse?.data?.states && Array.isArray(stateResponse.data.states)) {
                         statesResult = stateResponse.data.states
-                            .map(s => lcsCapitalizeWords(s.name))
+                            .map(s => capitalizeWords(s.name))
                             .filter(Boolean);
                     } else {
                         console.warn('Unexpected structure from countriesNow:', stateResponse);
@@ -605,7 +605,7 @@ export async function lcsGetAllStates (serviceProviderData, Country, neededState
                 case 'countryStateCity':
                     if (Array.isArray(stateResponse)) {
                         statesResult = stateResponse
-                            .map(s => lcsCapitalizeWords(s.name))
+                            .map(s => capitalizeWords(s.name))
                             .filter(Boolean)
                             .sort();
                     } else {
@@ -616,7 +616,7 @@ export async function lcsGetAllStates (serviceProviderData, Country, neededState
                 case 'geoNames':
                     if (stateResponse?.geonames && Array.isArray(stateResponse.geonames)) {
                         statesResult = stateResponse.geonames
-                            .map(geo => lcsCapitalizeWords(geo.name))
+                            .map(geo => capitalizeWords(geo.name))
                             .filter(Boolean)
                             .sort();
                     } else {
@@ -633,7 +633,7 @@ export async function lcsGetAllStates (serviceProviderData, Country, neededState
 
             // Filter states if neededStates is provided
             if (Array.isArray(neededStates) && neededStates.length > 0) {
-                statesResult = lcsFilterArraySimilarItems(statesResult, neededStates, false, true);
+                statesResult = filterArraySimilarItems(statesResult, neededStates, false, true);
             }
 
             resolve(statesResult);
@@ -653,14 +653,14 @@ export async function lcsGetAllStates (serviceProviderData, Country, neededState
  * @param {string[]} [neededCities] - Optional list of cities to filter the results.
  * @returns {Promise<string[]>} A promise resolving to a list of city names.
  */
-export async function lcsGetAllCities (serviceProviderData, Country, State, neededCities = []) {
+export async function getAllCities (serviceProviderData, Country, State, neededCities = []) {
     return new Promise(async (resolve, reject) => {
         try {
             // Check local database first
             let LDB_cities = lcsGetCitiesFromLocalDatabase(Country, State);
             if (LDB_cities.length > 0) {
                 if (Array.isArray(neededCities) && neededCities.length > 0) {
-                    LDB_cities = lcsFilterArraySimilarItems(LDB_cities, neededCities, false, true);
+                    LDB_cities = filterArraySimilarItems(LDB_cities, neededCities, false, true);
                 }
                 resolve(LDB_cities);
             }
@@ -678,7 +678,7 @@ export async function lcsGetAllCities (serviceProviderData, Country, State, need
 
             let citiesResult = [];
 
-            const countryISOCode = await lcsGetCountryISOCode(serviceProviderData, Country, 'alpha2');
+            const countryISOCode = await getCountryISOCode(serviceProviderData, Country, 'alpha2');
 
             // Define request data for each provider
             const citiesRequestData = {
@@ -724,7 +724,7 @@ export async function lcsGetAllCities (serviceProviderData, Country, State, need
                 case 'countriesNow':
                     if (cityResponse?.data && Array.isArray(cityResponse.data)) {
                         citiesResult = cityResponse.data
-                            .map(c => lcsCapitalizeWords(c))
+                            .map(c => capitalizeWords(c))
                             .filter(Boolean);
                     } else {
                         console.warn('Unexpected structure from countriesNow:', cityResponse);
@@ -734,7 +734,7 @@ export async function lcsGetAllCities (serviceProviderData, Country, State, need
                 case 'countryStateCity':
                     if (Array.isArray(cityResponse)) {
                         citiesResult = cityResponse
-                            .map(c => lcsCapitalizeWords(c.name))
+                            .map(c => capitalizeWords(c.name))
                             .filter(Boolean)
                             .sort();
                     } else {
@@ -745,7 +745,7 @@ export async function lcsGetAllCities (serviceProviderData, Country, State, need
                     if (cityResponse?.geonames && Array.isArray(cityResponse.geonames)) {
                         citiesResult = cityResponse.geonames
                             .filter(geo => geo.adminName1 === State)
-                            .map(geo => lcsCapitalizeWords(geo.name))
+                            .map(geo => capitalizeWords(geo.name))
                             .filter(Boolean)
                             .sort();
                     } else {
@@ -761,7 +761,7 @@ export async function lcsGetAllCities (serviceProviderData, Country, State, need
 
             // Filter cities if neededCities is provided
             if (Array.isArray(neededCities) && neededCities.length > 0) {
-                citiesResult = lcsFilterArraySimilarItems(citiesResult, neededCities, false, true);
+                citiesResult = filterArraySimilarItems(citiesResult, neededCities, false, true);
             }
 
             resolve(citiesResult);
@@ -780,7 +780,7 @@ export async function lcsGetAllCities (serviceProviderData, Country, State, need
  * @param {string} [codeType='alpha2'] - The type of ISO code to return ('alpha2' or 'alpha3').
  * @returns {Promise<string|null>} A promise resolving to the ISO code or null if not found.
  */
-export async function lcsGetCountryISOCode (serviceProviderData, countryName, codeType = 'alpha2') {
+export async function getCountryISOCode (serviceProviderData, countryName, codeType = 'alpha2') {
     const validCodeTypes = ['alpha2', 'alpha3'];
     if (!validCodeTypes.includes(codeType)) {
         throw new Error(`Invalid codeType. Allowed values are: ${validCodeTypes.join(', ')}`);
@@ -795,7 +795,7 @@ export async function lcsGetCountryISOCode (serviceProviderData, countryName, co
     let isoCodeResult = null;
     let serviceProvider = serviceProviderData.provider;
 
-    const countryOfficialName = await lcsGetCountryOfficialName(serviceProviderData, countryName);
+    const countryOfficialName = await getCountryOfficialName(serviceProviderData, countryName);
 
     const isoCodeRequestData = {
         'restCountries': {
@@ -832,14 +832,14 @@ export async function lcsGetCountryISOCode (serviceProviderData, countryName, co
 
         switch (serviceProvider) {
             case 'restCountries':
-                const countryRest = Array.isArray(response) ? response.find(c => lcsCapitalizeWords(c.name.common) === countryName) : null;
+                const countryRest = Array.isArray(response) ? response.find(c => capitalizeWords(c.name.common) === countryName) : null;
                 if (countryRest) {
                     isoCodeResult = codeType === 'alpha2' ? countryRest.cca2 : countryRest.cca3;
                 }
                 break;
 
             case 'geoNames':
-                const countryGeo = (response.geonames || []).find(c => lcsCapitalizeWords(c.countryName) === countryName);
+                const countryGeo = (response.geonames || []).find(c => capitalizeWords(c.countryName) === countryName);
                 if (countryGeo) {
                     isoCodeResult = codeType === 'alpha2' ? countryGeo.countryCode : null; // geoNames only provides alpha-2 codes
                 }
@@ -876,7 +876,7 @@ export async function lcsGetCountryISOCode (serviceProviderData, countryName, co
  * @param {string} countryName - The country to get the calling code for.
  * @returns {Promise<string>} The calling code string (e.g., '+234').
  */
-export async function lcsGetCountryCallingCode(serviceProviderData, countryName) {
+export async function getCountryCallingCode(serviceProviderData, countryName) {
     return new Promise(async (resolve, reject) => {
         // Check local database first
         const LDB_callingCode = lcsGetCountryCallingCodeFromLocalDatabase(countryName);
@@ -925,25 +925,25 @@ export async function lcsGetCountryCallingCode(serviceProviderData, countryName)
 
             switch (serviceProvider) {
                 case 'countriesNow':
-                    const countryNow = response.data.find(c => lcsCapitalizeWords(c.name) === countryName);
+                    const countryNow = response.data.find(c => capitalizeWords(c.name) === countryName);
                     if (countryNow && countryNow.dial_code) {
                         countryCCDResult = countryNow.dial_code;
                     }
                     break;
                 case 'restCountries':
-                    const countryRest = Array.isArray(response) ? response.find(c => lcsCapitalizeWords(c.name.common) === countryName) : null;
+                    const countryRest = Array.isArray(response) ? response.find(c => capitalizeWords(c.name.common) === countryName) : null;
                     if (countryRest && countryRest.idd?.root && countryRest.idd?.suffixes?.length) {
                         countryCCDResult = countryRest.idd.root + countryRest.idd.suffixes[0];
                     }
                     break;
                 case 'countryStateCity':
-                    const countryCSC = response.find(c => lcsCapitalizeWords(c.name) === countryName);
+                    const countryCSC = response.find(c => capitalizeWords(c.name) === countryName);
                     if (countryCSC && countryCSC.phonecode) {
                         countryCCDResult = countryCSC.phonecode.startsWith('+') ? countryCSC.phonecode : `+${countryCSC.phonecode}`;
                     }
                     break;
                 case 'geoNames':
-                    const countryGeo = (response.geonames || []).find(c => lcsCapitalizeWords(c.countryName) === countryName);
+                    const countryGeo = (response.geonames || []).find(c => capitalizeWords(c.countryName) === countryName);
                     if (countryGeo && countryGeo.phone) {
                         countryCCDResult = countryGeo.phone.startsWith('+') ? countryGeo.phone : `+${countryGeo.phone}`;
                     }
@@ -967,7 +967,7 @@ export async function lcsGetCountryCallingCode(serviceProviderData, countryName)
  * @param {string} countryName - The country to get the currency code for.
  * @returns {Promise<string>} The currency code (e.g., 'NGN').
  */
-export async function lcsGetCountryCurrencyCode(serviceProviderData, countryName) {
+export async function getCountryCurrencyCode(serviceProviderData, countryName) {
     return new Promise(async (resolve, reject) => {
         // Check local database first
         const LDB_currencyCode = lcsGetCountryCurrencyCodeFromLocalDatabase(countryName);
@@ -1016,13 +1016,13 @@ export async function lcsGetCountryCurrencyCode(serviceProviderData, countryName
 
             switch (serviceProvider) {
                 case 'countriesNow':
-                    const countryNow = response.data.find(c => lcsCapitalizeWords(c.name) === countryName);
+                    const countryNow = response.data.find(c => capitalizeWords(c.name) === countryName);
                     if (countryNow && countryNow.currency) {
                         countryCCResult = countryNow.currency;
                     }
                     break;
                 case 'restCountries':
-                    const countryRest = Array.isArray(response) ? response.find(c => lcsCapitalizeWords(c.name.common) === countryName) : null;
+                    const countryRest = Array.isArray(response) ? response.find(c => capitalizeWords(c.name.common) === countryName) : null;
                     if (countryRest && countryRest.currencies) {
                         const currencyCode = Object.keys(countryRest.currencies)[0];
                         if (currencyCode) {
@@ -1031,13 +1031,13 @@ export async function lcsGetCountryCurrencyCode(serviceProviderData, countryName
                     }
                     break;
                 case 'countryStateCity':
-                    const countryCSC = response.find(c => lcsCapitalizeWords(c.name) === countryName);
+                    const countryCSC = response.find(c => capitalizeWords(c.name) === countryName);
                     if (countryCSC && countryCSC.currency) {
                         countryCCResult = countryCSC.currency;
                     }
                     break;
                 case 'geoNames':
-                    const countryGeo = (response.geonames || []).find(c => lcsCapitalizeWords(c.countryName) === countryName);
+                    const countryGeo = (response.geonames || []).find(c => capitalizeWords(c.countryName) === countryName);
                     if (countryGeo && countryGeo.currencyCode) {
                         countryCCResult = countryGeo.currencyCode;
                     }
@@ -1061,7 +1061,7 @@ export async function lcsGetCountryCurrencyCode(serviceProviderData, countryName
  * @param {string} countryName - The country to get the flag for.
  * @returns {Promise<string>} The image URL of the country flag.
  */
-export async function lcsGetCountryFlag(serviceProviderData, countryName) {
+export async function getCountryFlag(serviceProviderData, countryName) {
     return new Promise(async (resolve, reject) => {
         try {
             // Check local database first
@@ -1074,7 +1074,7 @@ export async function lcsGetCountryFlag(serviceProviderData, countryName) {
             let serviceProvider = serviceProviderData.provider;
 
             // Fetch the ISO country code
-            const countryISOCode = await lcsGetCountryISOCode(serviceProviderData, countryName, 'alpha2');
+            const countryISOCode = await getCountryISOCode(serviceProviderData, countryName, 'alpha2');
             if (!countryISOCode) {
                 console.warn(`Could not find ISO code for country: ${countryName}`);
                 resolve(undefined);
@@ -1173,7 +1173,7 @@ let numberOfCityInputElement = 0;
  */
 const createCountryOptions = async (serviceProviderData, Countries, selectedCountry, showFlag = true, dataSets = [], inputName = 'country') => {
     selectedCountry = selectedCountry || Countries[0];
-    selectedCountry = lcsFilterArraySimilarItems(Countries, selectedCountry, true, true);
+    selectedCountry = filterArraySimilarItems(Countries, selectedCountry, true, true);
     if (Array.isArray(selectedCountry)) selectedCountry = selectedCountry[0];
 
     dataSets = [...dataSets, 'name'];
@@ -1211,15 +1211,15 @@ const createCountryOptions = async (serviceProviderData, Countries, selectedCoun
 
         const datasets = {};
         if (dataSets.includes('name')) datasets.country_name = country;
-        if (dataSets.includes('calling_code')) datasets.country_calling_code = await lcsGetCountryCallingCode(serviceProviderData, country);
-        if (dataSets.includes('currency_code')) datasets.country_currency_code = await lcsGetCountryCurrencyCode(serviceProviderData, country);
+        if (dataSets.includes('calling_code')) datasets.country_calling_code = await getCountryCallingCode(serviceProviderData, country);
+        if (dataSets.includes('currency_code')) datasets.country_currency_code = await getCountryCurrencyCode(serviceProviderData, country);
 
         Object.entries(datasets).forEach(([key, value]) => {
             countryOption.dataset[key] = value;
         });
 
         if (Countries.length < 10 && showFlag === true) {
-            const flagUrl = await lcsGetCountryFlag(serviceProviderData, country);
+            const flagUrl = await getCountryFlag(serviceProviderData, country);
             if (flagUrl) {
                 const flagImg = document.createElement('img');
                 flagImg.src = flagUrl;
@@ -1256,7 +1256,7 @@ const createStateOptions = async (States, selectedState, belongingCountry, dataS
     }  
 
     selectedState = selectedState || States[0];
-    selectedState = lcsFilterArraySimilarItems(States, selectedState, true, true);
+    selectedState = filterArraySimilarItems(States, selectedState, true, true);
     if (Array.isArray(selectedState)) selectedState = selectedState[0];
 
     dataSets = [...dataSets, 'name'];
@@ -1281,7 +1281,7 @@ const createStateOptions = async (States, selectedState, belongingCountry, dataS
 
     const stateOptionsPlaceholder = document.createElement('span');
     stateOptionsPlaceholder.className = '_options_placeholder';
-    stateOptionsPlaceholder.innerHTML = lcsCapitalizeWords(selectedState);
+    stateOptionsPlaceholder.innerHTML = capitalizeWords(selectedState);
 
     const stateOptions = document.createElement('div');
     stateOptions.className = '_options';
@@ -1290,7 +1290,7 @@ const createStateOptions = async (States, selectedState, belongingCountry, dataS
         const stateOption = document.createElement('div');
         stateOption.className = '_state';
         stateOption.textContent = state;
-        if (state === lcsCapitalizeWords(selectedState)) stateOption.classList.add('_selected');
+        if (state === capitalizeWords(selectedState)) stateOption.classList.add('_selected');
 
         const datasets = {};
         if (dataSets.includes('name')) datasets.name = state;
@@ -1325,7 +1325,7 @@ const createCityOptions = async (Cities, selectedCity, dataSets = [], inputName 
     }    
 
     selectedCity = selectedCity || Cities[0];
-    selectedCity = lcsFilterArraySimilarItems(Cities, selectedCity, true, true);
+    selectedCity = filterArraySimilarItems(Cities, selectedCity, true, true);
     if (Array.isArray(selectedCity)) selectedCity = selectedCity[0];
 
     dataSets = [...dataSets, 'name'];
@@ -1350,7 +1350,7 @@ const createCityOptions = async (Cities, selectedCity, dataSets = [], inputName 
 
     const cityOptionsPlaceholder = document.createElement('span');
     cityOptionsPlaceholder.className = '_options_placeholder';
-    cityOptionsPlaceholder.innerHTML = lcsCapitalizeWords(selectedCity);
+    cityOptionsPlaceholder.innerHTML = capitalizeWords(selectedCity);
 
     const cityOptions = document.createElement('div');
     cityOptions.className = '_options';
@@ -1359,7 +1359,7 @@ const createCityOptions = async (Cities, selectedCity, dataSets = [], inputName 
         const cityOption = document.createElement('div');
         cityOption.className = '_city';
         cityOption.textContent = city;
-        if (city === lcsCapitalizeWords(selectedCity)) cityOption.classList.add('_selected');
+        if (city === capitalizeWords(selectedCity)) cityOption.classList.add('_selected');
 
         const datasets = {};
         if (dataSets.includes('name')) datasets.name = city;
@@ -1463,7 +1463,7 @@ async function lcsFetchCountrySelectionData(url, data = {}, timeoutMs = 15000) {
  *
  * Usage Example:
  * ```javascript
- * const dropdown = await lcsGenerateCountrySelection({
+ * const dropdown = await lcsTools.generateCountrySelection({
  *   countries: ['Nigeria', 'Ghana'],
  *   options: ['country', 'state'],
  *   showFlag: true,
@@ -1490,7 +1490,7 @@ async function lcsFetchCountrySelectionData(url, data = {}, timeoutMs = 15000) {
  * @returns {Promise<string>} A promise that resolves to the generated HTML string for the country selection container.    
  * @throws {Error} Throws an error if API fetch fails, data is invalid, or unsupported options are provided.
  */
-export async function lcsGenerateCountrySelection(data = {}) {
+export async function generateCountrySelection(data = {}) {
     // Default args
     const defaultData = {
         serviceProvider: {
@@ -1525,7 +1525,7 @@ export async function lcsGenerateCountrySelection(data = {}) {
     // Fetch all countries using the helper function
     let neededCountries = [];
     try {
-        neededCountries = await lcsGetAllCountries(sPData, data.countries);
+        neededCountries = await getAllCountries(sPData, data.countries);
     } catch (error) {
         throw new Error(error);
     }
@@ -1534,29 +1534,29 @@ export async function lcsGenerateCountrySelection(data = {}) {
         throw new Error('No countries retrieved from the API');
     }
     // Set selected country
-    let selectedCountry = lcsFilterArraySimilarItems(neededCountries, data.selectedCountry, true, true);
+    let selectedCountry = filterArraySimilarItems(neededCountries, data.selectedCountry, true, true);
     if (Array.isArray(selectedCountry)) selectedCountry = selectedCountry[0];
 
     // Fetch States
     let neededStates = [];
     try {
-        neededStates = await lcsGetAllStates(sPData, selectedCountry, data.states);
+        neededStates = await getAllStates(sPData, selectedCountry, data.states);
     } catch (error) {
         throw new Error(`Could not retrieve states for country: ${selectedCountry}; Server response: ${error} `);
     }
     // Set selected state
-    let selectedState = lcsFilterArraySimilarItems(neededStates, data.selectedState, true, true);
+    let selectedState = filterArraySimilarItems(neededStates, data.selectedState, true, true);
     if (Array.isArray(selectedState)) selectedState = selectedState[0];
 
     // Fetch all cities
     let neededCities = [];
     try {
-        neededCities = await lcsGetAllCities(sPData, selectedCountry, selectedState, data.cities);
+        neededCities = await getAllCities(sPData, selectedCountry, selectedState, data.cities);
     } catch (error) {
         throw new Error(`Could not retrieve cities for state: ${selectedState} in country: ${selectedCountry}. Server response: ${error}`);
     }
     // Set selected city
-    let selectedCity = lcsFilterArraySimilarItems(neededCities, data.selectedCity, true, true);
+    let selectedCity = filterArraySimilarItems(neededCities, data.selectedCity, true, true);
     if (Array.isArray(selectedCity)) selectedCity = selectedCity[0];
 
     // Create the main container
@@ -1565,7 +1565,7 @@ export async function lcsGenerateCountrySelection(data = {}) {
     lcsCountrySelection.style.position = 'relative';
 
     window.lcsCountrySelectionData = {};
-    const trackingKey = lcsGenerateCodes();
+    const trackingKey = generateCodes();
 
     lcsCountrySelection.dataset.dtk = trackingKey;
 
@@ -1593,6 +1593,11 @@ export async function lcsGenerateCountrySelection(data = {}) {
     }
 
     lcsCountrySelection.appendChild(lcsCountrySelectionWrapper);
+
+    if (data.container && (data.container instanceof HTMLElement)) {
+        data.container.insertAdjacentHTML("beforeend", lcsCountrySelection.outerHTML);
+    }
+    
     return lcsCountrySelection.outerHTML;
 }
 
@@ -1638,7 +1643,7 @@ document.addEventListener('click', async (event) => {
         && !clickTarget.closest('._options')
     ) {
         // First close some dropdown
-        closeOptionsDropdown(specificOptions = ['state', 'city']);
+        closeOptionsDropdown(['state', 'city']);
 
         const countryOptionsPlaceholder = clickTarget.closest('._options_placeholder_container');
         const countryOptionsContainer = countryOptionsPlaceholder.querySelector('._options');
@@ -1656,7 +1661,7 @@ document.addEventListener('click', async (event) => {
         && !clickTarget.closest('._options')
     ) {
         // First close some dropdown
-        closeOptionsDropdown(specificOptions = ['country', 'city']);
+        closeOptionsDropdown(['country', 'city']);
 
         const stateOptionsPlaceholder = clickTarget.closest('._options_placeholder_container');
         const stateOptionsContainer = stateOptionsPlaceholder.querySelector('._options');
@@ -1674,7 +1679,7 @@ document.addEventListener('click', async (event) => {
         && !clickTarget.closest('._options')
     ) {
         // First close some dropdown
-        closeOptionsDropdown(specificOptions = ['state', 'country']);
+        closeOptionsDropdown(['state', 'country']);
 
         const cityOptionsPlaceholder = clickTarget.closest('._options_placeholder_container');
         const cityOptionsContainer = cityOptionsPlaceholder.querySelector('._options');
@@ -1711,7 +1716,7 @@ document.addEventListener('click', async (event) => {
         // ...lets fetch the states of the country only if allowed by the options
         let thisCountryQueriedStates = [];
         if (thisCountrySelectionData.options.includes('state')) {
-            thisCountryQueriedStates = await lcsGetAllStates(thisCountrySelectionData.serviceProvider, countryName, thisCountrySelectionData.states);
+            thisCountryQueriedStates = await getAllStates(thisCountrySelectionData.serviceProvider, countryName, thisCountrySelectionData.states);
             const thisCountrySelectionExistingStateContainer = thisCountrySelection.querySelector('._state_container');
             const thisCountrySelectionNewStateContainer = await createStateOptions(thisCountryQueriedStates, thisCountrySelectionData.selectedState, countryName, thisCountrySelectionData.dataSet.state);
             if (thisCountrySelectionExistingStateContainer) {
@@ -1759,7 +1764,7 @@ document.addEventListener('click', async (event) => {
 
         // ...lets fetch the cities of the state only if allowed by the options
         if (thisCountrySelectionData.options.includes('city')) {
-            const thisStateQueriedCities = await lcsGetAllCities(thisCountrySelectionData.serviceProvider, selectedStateBelongingCountry, selectedState, thisCountrySelectionData.cities);
+            const thisStateQueriedCities = await getAllCities(thisCountrySelectionData.serviceProvider, selectedStateBelongingCountry, selectedState, thisCountrySelectionData.cities);
             const thisStateSelectionExistingCityContainer = thisCountrySelection.querySelector('._city_container');
             const thisStateSelectionNewCityContainer = await createCityOptions(thisStateQueriedCities, thisCountrySelectionData.selectedCity, thisCountrySelectionData.dataSet.city);
             if (thisStateSelectionExistingCityContainer) {
@@ -1803,7 +1808,7 @@ document.addEventListener('click', async (event) => {
             const thisStateSelectionContainer = thisCountrySelection.querySelector('._state_container');
             const thisStateSelectionExistingCityContainer = thisCountrySelection.querySelector('._city_container');
             if (thisStateSelectionContainer && thisStateSelectionExistingCityContainer) {
-                const thisStateQueriedCities = await lcsGetAllCities(thisCountrySelectionData.serviceProvider, belongingCountry, belongingState, thisCountrySelectionData.cities);
+                const thisStateQueriedCities = await getAllCities(thisCountrySelectionData.serviceProvider, belongingCountry, belongingState, thisCountrySelectionData.cities);
                 const thisStateSelectionNewCityContainer = await createCityOptions(thisStateQueriedCities, thisCountrySelectionData.selectedCity, thisCountrySelectionData.dataSet.city);
                 if (thisStateSelectionExistingCityContainer) {
                     thisStateSelectionExistingCityContainer.insertAdjacentHTML('beforebegin', thisStateSelectionNewCityContainer);
