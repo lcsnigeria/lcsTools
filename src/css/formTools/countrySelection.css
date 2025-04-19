@@ -2,22 +2,22 @@
     font-family: Arial, sans-serif;
 }
 
-._dropdown_wrapper {
+.lcsCountrySelection ._dropdown_wrapper {
     display: flex;
     flex-direction: column;
     gap: 10px;
     max-width: 300px;
 }
 
-._country_container, 
-._state_container, 
-._city_container {
+.lcsCountrySelection ._country_container, 
+.lcsCountrySelection ._state_container, 
+.lcsCountrySelection ._city_container {
     display: block;
 }
 
-._country_container ._label, 
-._state_container ._label, 
-._city_container ._label{
+.lcsCountrySelection ._country_container ._label, 
+.lcsCountrySelection ._state_container ._label, 
+.lcsCountrySelection ._city_container ._label{
     display: block;
     font-size: 15px;
     color: #333;
@@ -25,9 +25,9 @@
     margin-bottom: 5px;
 }
 
-._country_container ._options_placeholder_container, 
-._state_container ._options_placeholder_container, 
-._city_container ._options_placeholder_container {
+.lcsCountrySelection ._country_container ._options_placeholder_container, 
+.lcsCountrySelection ._state_container ._options_placeholder_container, 
+.lcsCountrySelection ._city_container ._options_placeholder_container {
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 10px;
@@ -35,16 +35,16 @@
     cursor: pointer;
 }
 
-._country_container ._options_placeholder, 
-._state_container ._options_placeholder, 
-._city_container ._options_placeholder {
+.lcsCountrySelection ._country_container ._options_placeholder, 
+.lcsCountrySelection ._state_container ._options_placeholder, 
+.lcsCountrySelection ._city_container ._options_placeholder {
     color: #222;
     font-size: 16px;
 }
 
-._country_container ._options, 
-._state_container ._options, 
-._city_container ._options {
+.lcsCountrySelection ._country_container ._options, 
+.lcsCountrySelection ._state_container ._options, 
+.lcsCountrySelection ._city_container ._options {
     border: 1px solid #ccc;
     border-radius: 5px;
     max-height: 200px;
@@ -55,7 +55,9 @@
     z-index: 100;
 }
 
-._country, ._state, ._city {
+.lcsCountrySelection ._country, 
+.lcsCountrySelection ._state, 
+.lcsCountrySelection ._city {
     padding: 10px;
     cursor: pointer;
     display: flex;
@@ -63,15 +65,17 @@
     gap: 10px;
 }
 
-._country:hover, ._state:hover, ._city:hover {
+.lcsCountrySelection ._country:hover, 
+.lcsCountrySelection ._state:hover, 
+.lcsCountrySelection ._city:hover {
     background-color: #f0f0f0;
 }
 
-._selected {
+.lcsCountrySelection ._selected {
     background-color: #e0e0e0;
     font-weight: bold;
 }
-._flag {
+.lcsCountrySelection ._flag {
     width: 20px;
     height: 20px;
 }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: workingTools.js</title>
+    <title>JSDoc: Source: alertsAndLogs/alerts.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: workingTools.js</h1>
+    <h1 class="page-title">Source: alertsAndLogs/alerts.js</h1>
 
     
 
@@ -26,122 +26,73 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
- * Capitalizes each word in a string (e.g., "united states" → "United States").
- *
- * @param {string} str - The input string to capitalize.
- * @returns {string|boolean} The capitalized string or false if invalid input.
- */
-export function capitalizeWords(str) {
-    if (!str || !/^[A-Za-z\s]+$/.test(str)) return false;
-    return str
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-};
+            <pre class="prettyprint source linenums"><code>import '../../css/alertsAndLogs/alerts.css';
 
 /**
- * Generates a random code based on the specified type and length.
+ * Displays an alert box on the webpage with a specified message and type.
  *
- * @param {string} type - The type of code to generate ('number', 'letters', 'mixed').
- * @param {number} length - The length of the code to generate.
- * @param {boolean} [includeSpecialChars=false] - Whether to include special characters in the code.
- * @returns {string} The generated code.
- * @throws {Error} Throws an error if the type is invalid or length is not a positive number.
- */
-export function generateCodes(type = 'mixed', length = 8, includeSpecialChars = false) {
-    if (!['number', 'letters', 'mixed'].includes(type)) {
-        throw new Error("Invalid type. Allowed values are 'number', 'letters', or 'mixed'.");
-    }
-    if (typeof length !== 'number' || length &lt;= 0) {
-        throw new Error('Length must be a positive number.');
-    }
-
-    const numbers = '0123456789';
-    const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const specialChars = '!@#$%^&amp;*()_+[]{}|;:,.&lt;>?';
-
-    let characters = '';
-    if (type === 'number') {
-        characters = numbers;
-    } else if (type === 'letters') {
-        characters = letters;
-    } else if (type === 'mixed') {
-        characters = numbers + letters;
-    }
-
-    if (includeSpecialChars) {
-        characters += specialChars;
-    }
-
-    let result = '';
-    for (let i = 0; i &lt; length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        result += characters[randomIndex];
-    }
-
-    return result;
-};
-
-/**
- * Checks if any item in the given ItemsParam is partially matched in ArrayParam (case-insensitive).
+ * @param {string} alertMsg - The message to display in the alert box.
+ * @param {string} [alertType='alert'] - The type of alert to display. 
+ *     Supported types are:
+ *     - 'alert': Default alert with an exclamation circle icon.
+ *     - 'info': Informational alert with an info circle icon.
+ *     - 'error': Error alert with a times circle icon.
+ *     - 'success': Success alert with a check circle icon.
+ *     - 'warning': Warning alert with an exclamation triangle icon.
+ *     If an invalid type is provided, it defaults to 'alert'.
  *
- * @param {string[]} ArrayParam - The array to search in.
- * @param {string|string[]} ItemsParam - The item(s) to check for similarity.
- * @returns {boolean} True if at least one similar item is found, false otherwise.
- */
-export function arrayHasSimilarItems(ArrayParam, ItemsParam) {
-    if (!Array.isArray(ItemsParam)) {
-        ItemsParam = [ItemsParam];
-    }
-
-    const normalizedItems = ItemsParam.map(item => capitalizeWords(item).toLowerCase());
-
-    return ArrayParam.some(aItem =>
-        normalizedItems.some(nItem => aItem.toLowerCase().includes(nItem))
-    );
-};
-
-/**
- * Filters items from ArrayParam that are partially similar to items in ItemsParam.
+ * @example
+ * // Display a success alert
+ * alert('Operation completed successfully!', 'success');
  *
- * @param {Array} ArrayParam - The array to filter (should ideally contain strings).
- * @param {string|string[]} ItemsParam - The item(s) to compare against.
- * @param {boolean} [returnSingleIfComparationIsSingle=false] - If true and a single item is passed, return the first match directly.
- * @param {boolean} [returnPrimaryItemsIfNoMatch=false] - If true and no matches are found, return the original ArrayParam instead.
- * @returns {string[]|string|undefined} Filtered matching items, the first match if comparation is single, or the full list if no match and fallback is enabled.
+ * @example
+ * // Display an error alert
+ * alert('An error occurred.', 'error');
+ *
+ * @example
+ * // Display a default alert
+ * alert('This is a default alert.');
  */
-export function filterArraySimilarItems(
-    ArrayParam,
-    ItemsParam,
-    returnSingleIfComparationIsSingle = false,
-    returnPrimaryItemsIfNoMatch = false
-) {
-    let comparationIsSingle = false;
-    if (!Array.isArray(ItemsParam)) {
-        comparationIsSingle = true;
-        ItemsParam = [ItemsParam];
+export function alert(alertMsg, alertType = 'alert') {
+    const alertThemeClass = {
+        'alert': { class: 'lcs_alert_box_alert', fa_icon: 'fa-exclamation-circle' },
+        'info': { class: 'lcs_alert_box_info', fa_icon: 'fa-info-circle' },
+        'error': { class: 'lcs_alert_box_error', fa_icon: 'fa-times-circle' },
+        'success': { class: 'lcs_alert_box_success', fa_icon: 'fa-check-circle' },
+        'warning': { class: 'lcs_alert_box_warn', fa_icon: 'fa-exclamation-triangle' }
+    };
+
+    if (!alertThemeClass[alertType]) {
+        console.warn(`Invalid alert type: ${alertType}, defaulting to "alert".`);
+        alertType = 'alert';
     }
 
-    const normalizedItems = ItemsParam.map(item =>
-        String(capitalizeWords(item)).toLowerCase()
-    );
+    // Create alert container
+    const alertBox = document.createElement('div');
+    alertBox.className = `lcs_alert_box ${alertThemeClass[alertType].class}`;
 
-    const itemsResult = ArrayParam.filter(aItem => {
-        if (typeof aItem !== 'string') return false;
-        const aItemStr = aItem.toLowerCase();
-        return normalizedItems.some(nItem => aItemStr.includes(nItem));
-    });
+    // Create icon element
+    const icon = document.createElement('i');
+    icon.className = `fa ${alertThemeClass[alertType].fa_icon} fa-2x`;
 
-    // If no match and fallback is requested
-    const result = itemsResult.length > 0 ? itemsResult : (returnPrimaryItemsIfNoMatch ? ArrayParam : []);
+    // Create html element
+    const alertHTML = document.createElement('span');
+    alertHTML.className = 'lcs_alert_content';
+    alertHTML.innerHTML = alertMsg;
 
-    if (comparationIsSingle &amp;&amp; returnSingleIfComparationIsSingle) {
-        return result[0]; // returns first match, or first item of ArrayParam if fallback
-    }
+    // Create close button
+    const closeButton = document.createElement('i');
+    closeButton.className = 'fa fa-times fa-2x exit_button';
+    closeButton.onclick = () => alertBox.remove();
 
-    return result;
-};</code></pre>
+    // Append elements
+    alertBox.appendChild(icon);
+    alertBox.appendChild(alertHTML);
+    alertBox.appendChild(closeButton);
+
+    // Append to body
+    document.body.appendChild(alertBox);
+}</code></pre>
         </article>
     </section>
 

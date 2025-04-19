@@ -1,0 +1,58 @@
+/* ALERTs */
+.lcs_alert_box {
+    width: 440px;
+    border-radius: 6px;
+    margin: 20px auto;
+    padding: auto 0;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 15px;
+    font-size: 16px;
+    font-family: Arial, sans-serif;
+    z-index: 9999;
+}
+.lcs_alert_box i {
+    vertical-align: middle;
+}
+.lcs_alert_box i.exit_button {
+    cursor: pointer;
+    opacity: 0.4;
+}
+.lcs_alert_box i.exit_button:hover {
+    opacity: 0.8;
+}
+.lcs_alert_content {
+    flex-grow: 1;
+    text-align: left;
+}
+.lcs_alert_box_alert {
+    background-color: var(--whiteColor);
+    border: 2px solid var(--textColor);
+    color: var(--textColor);
+}
+.lcs_alert_box_info {
+    background-color: var(--info);
+    border: 2px solid #5a99c7; /* darkened version of --info */
+    color: var(--infoText);
+}
+.lcs_alert_box_warn {
+    background-color: var(--warn);
+    border: 2px solid #bba832; /* darkened version of --warn */
+    color: var(--warnText);
+}
+.lcs_alert_box_error {
+    background-color: var(--error);
+    border: 2px solid #962826; /* darkened version of --error */
+    color: var(--errorText);
+}
+.lcs_alert_box_success {
+    background-color: var(--success);
+    border: 2px solid #3e5c32; /* darkened version of --success */
+    color: var(--successText);
+}
