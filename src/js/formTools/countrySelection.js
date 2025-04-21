@@ -2,9 +2,9 @@
 import '../../css/formTools/countrySelection.css';
 
 // Importing utility functions for string manipulation and code generation
-import { 
-    capitalizeWords, filterArraySimilarItems, generateCodes
-} from '../workingTools.js';
+import { capitalizeWords } from '../workingTools/stringOps.js';
+import { filterArraySimilarItems } from '../workingTools/arrayOps.js';
+import { generateCodes } from '../workingTools/credsAndCodes.js';
 
 // Importing functions for interacting with the local database
 import { getLocalDatabaseData, updateLocalDatabaseData } from '../dataStorage/localDatabase.js';

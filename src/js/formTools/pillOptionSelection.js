@@ -1,7 +1,7 @@
 // Importing the CSS file for styling the pill selection
 import '../../css/formTools/pillOptionSelection.css';
 
-import { generateCodes } from "../workingTools";
+import { generateCodes } from '../workingTools/credsAndCodes.js';
 
 // Global storage for pill options data
 window.lcsPillOptions = {};
