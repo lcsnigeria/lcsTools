@@ -1,0 +1,56 @@
+/* Basic styling for the pill options */
+._form_group.lcsPillOptionsSelection {
+    width: 100%;
+    margin: 20px;
+    font-family: Arial, sans-serif;
+}
+._label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+._pill_options_wrapper {
+    position: relative;
+    overflow-y: auto;
+    max-height: 200px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+}
+._pill_options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+._pill_option {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 16px;
+    background: #f9f9f9;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s, border-color 0.2s;
+}
+._pill_option:hover {
+    background: #e0e0e0;
+}
+._pill_option._selected {
+    background: #444444;
+    border-color: #444444;
+    color: #fff;
+}
+._pill_option._selected ._option_icon,
+._pill_option._selected ._option_label {
+    color: #fff;
+}
+._option_icon {
+    margin-right: 6px;
+    color: #333;
+}
+._option_label {
+    font-size: 14px;
+    color: #333;
+}

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: workingTools.js</title>
+    <title>JSDoc: Source: formTools/radioOptionSelection.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: workingTools.js</h1>
+    <h1 class="page-title">Source: formTools/radioOptionSelection.js</h1>
 
     
 
@@ -27,121 +27,134 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>/**
- * Capitalizes each word in a string (e.g., "united states" → "United States").
+ * Generates custom-styled radio options wrapped in structured HTML.
  *
- * @param {string} str - The input string to capitalize.
- * @returns {string|boolean} The capitalized string or false if invalid input.
- */
-export function capitalizeWords(str) {
-    if (!str || !/^[A-Za-z\s]+$/.test(str)) return false;
-    return str
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-};
-
-/**
- * Generates a random code based on the specified type and length.
+ * Each option is rendered as a custom block with optional icons and toggle visuals.
+ * Only one option can be selected at a time. If multiple options are marked as selected,
+ * only the first will be retained.
  *
- * @param {string} type - The type of code to generate ('number', 'letters', 'mixed').
- * @param {number} length - The length of the code to generate.
- * @param {boolean} [includeSpecialChars=false] - Whether to include special characters in the code.
- * @returns {string} The generated code.
- * @throws {Error} Throws an error if the type is invalid or length is not a positive number.
- */
-export function generateCodes(type = 'mixed', length = 8, includeSpecialChars = false) {
-    if (!['number', 'letters', 'mixed'].includes(type)) {
-        throw new Error("Invalid type. Allowed values are 'number', 'letters', or 'mixed'.");
-    }
-    if (typeof length !== 'number' || length &lt;= 0) {
-        throw new Error('Length must be a positive number.');
-    }
-
-    const numbers = '0123456789';
-    const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const specialChars = '!@#$%^&amp;*()_+[]{}|;:,.&lt;>?';
-
-    let characters = '';
-    if (type === 'number') {
-        characters = numbers;
-    } else if (type === 'letters') {
-        characters = letters;
-    } else if (type === 'mixed') {
-        characters = numbers + letters;
-    }
-
-    if (includeSpecialChars) {
-        characters += specialChars;
-    }
-
-    let result = '';
-    for (let i = 0; i &lt; length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        result += characters[randomIndex];
-    }
-
-    return result;
-};
-
-/**
- * Checks if any item in the given ItemsParam is partially matched in ArrayParam (case-insensitive).
+ * If either `label` or `value` is missing in an option, the other will be used as a fallback.
+ * An error is thrown if both are missing.
  *
- * @param {string[]} ArrayParam - The array to search in.
- * @param {string|string[]} ItemsParam - The item(s) to check for similarity.
- * @returns {boolean} True if at least one similar item is found, false otherwise.
+ * @param {string} name - The name of the radio group. Used as the name attribute of the hidden input.
+ * @param {Array&lt;Object>} options - Array of option objects for each radio choice.
+ * @param {string} [options[].label] - The display label for the radio option. Used as fallback for value if value is not provided.
+ * @param {string} [options[].value] - The value for the option. Used as fallback for label if label is not provided.
+ * @param {string} [options[].icon] - Optional icon class to display (e.g., FontAwesome class).
+ * @param {boolean} [options[].selected=false] - Whether the option is selected by default.
+ * @param {Array&lt;{name: string, value: string}>} [options[].attributes] - Additional HTML attributes for the option container.
+ * @param {Object} [attributes={}] - Additional HTML attributes for the outer `_form_group` container.
+ * @returns {string} - HTML markup representing the custom radio option group.
  */
-export function arrayHasSimilarItems(ArrayParam, ItemsParam) {
-    if (!Array.isArray(ItemsParam)) {
-        ItemsParam = [ItemsParam];
-    }
+export function generateRadioOptions(name, options = [], attributes = {}) {
+    const containerAttributes = {
+        class: '_form_group',
+        ...attributes
+    };
 
-    const normalizedItems = ItemsParam.map(item => capitalizeWords(item).toLowerCase());
+    let selectedFound = false;
+    options.forEach(option => {
+        if (option.selected &amp;&amp; selectedFound) {
+            option.selected = false;
+        }
+        if (option.selected) {
+            selectedFound = true;
+        }
 
-    return ArrayParam.some(aItem =>
-        normalizedItems.some(nItem => aItem.toLowerCase().includes(nItem))
-    );
-};
+        if (!option.label &amp;&amp; !option.value) {
+            throw new Error("Each option must have at least a 'label' or 'value'");
+        }
 
-/**
- * Filters items from ArrayParam that are partially similar to items in ItemsParam.
- *
- * @param {Array} ArrayParam - The array to filter (should ideally contain strings).
- * @param {string|string[]} ItemsParam - The item(s) to compare against.
- * @param {boolean} [returnSingleIfComparationIsSingle=false] - If true and a single item is passed, return the first match directly.
- * @param {boolean} [returnPrimaryItemsIfNoMatch=false] - If true and no matches are found, return the original ArrayParam instead.
- * @returns {string[]|string|undefined} Filtered matching items, the first match if comparation is single, or the full list if no match and fallback is enabled.
- */
-export function filterArraySimilarItems(
-    ArrayParam,
-    ItemsParam,
-    returnSingleIfComparationIsSingle = false,
-    returnPrimaryItemsIfNoMatch = false
-) {
-    let comparationIsSingle = false;
-    if (!Array.isArray(ItemsParam)) {
-        comparationIsSingle = true;
-        ItemsParam = [ItemsParam];
-    }
+        if (!option.label) {
+            option.label = option.value;
+        }
 
-    const normalizedItems = ItemsParam.map(item =>
-        String(capitalizeWords(item)).toLowerCase()
-    );
-
-    const itemsResult = ArrayParam.filter(aItem => {
-        if (typeof aItem !== 'string') return false;
-        const aItemStr = aItem.toLowerCase();
-        return normalizedItems.some(nItem => aItemStr.includes(nItem));
+        if (!option.value) {
+            option.value = option.label;
+        }
     });
 
-    // If no match and fallback is requested
-    const result = itemsResult.length > 0 ? itemsResult : (returnPrimaryItemsIfNoMatch ? ArrayParam : []);
+    let output = `&lt;div ${generateAttributes(containerAttributes)}>`;
+    output += `&lt;div class="_radio_options" data-radio_options_name="${name}">`;
 
-    if (comparationIsSingle &amp;&amp; returnSingleIfComparationIsSingle) {
-        return result[0]; // returns first match, or first item of ArrayParam if fallback
-    }
+    options.forEach(option => {
+        const { label, value, icon, attributes: optionAttributes = [], selected = false } = option;
 
-    return result;
-};</code></pre>
+        const defaultOptionAttributes = {
+            class: `_radio_option ${selected ? '_selected' : ''}`,
+            'data-radio_option_value': value
+        };
+
+        const optionAttrs = {
+            ...defaultOptionAttributes,
+            ...optionAttributes.reduce((acc, { name, value }) => {
+                acc[name] = value;
+                return acc;
+            }, {})
+        };
+
+        output += `
+            &lt;div ${generateAttributes(optionAttrs)}>
+                &lt;div class="_radio_option_label">
+                    ${icon ? `&lt;i class="${icon}">&lt;/i>` : ''}
+                    &lt;span>${label}&lt;/span>
+                &lt;/div>
+                &lt;div class="_radio_option_toggle">&lt;span>&lt;/span>&lt;/div>
+            &lt;/div>
+        `;
+    });
+
+    output += `&lt;input type="hidden" class="_radio_options_value" name="${name}" value="${options.find(option => option.selected)?.value || options[0].value}" required>`;
+    output += '&lt;/div>&lt;/div>';
+    return output;
+}
+
+/**
+ * Converts an object of key-value pairs into a string of HTML attributes.
+ *
+ * @param {Object} attributes - An object representing HTML attributes (e.g., { class: "my-class", id: "main" }).
+ * @returns {string} - A space-separated string of HTML attributes.
+ */
+function generateAttributes(attributes) {
+    return Object.entries(attributes)
+        .map(([key, value]) => `${key}="${value}"`)
+        .join(' ');
+}
+
+/**
+ * Initializes click behavior for custom-styled radio options.
+ *
+ * When an option is clicked:
+ * - All other options are deselected (`_selected` class removed).
+ * - The clicked option is marked as selected (`_selected` class added).
+ * - The associated hidden input is updated with the selected value.
+ *
+ * This logic assumes the structure generated by `generateRadioOptions()`,
+ * where each group has a `. _radio_options` container and a hidden input
+ * named `._radio_options_value`.
+ */
+document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("click", function (e) {
+        const option = e.target.closest("._radio_option");
+        if (!option) return;
+
+        const optionsContainer = option.closest("._radio_options");
+        const radioOptionsInput = optionsContainer.querySelector("._radio_options_value");
+
+        // Deselect all options
+        optionsContainer.querySelectorAll("._radio_option").forEach(opt => {
+            opt.classList.remove("_selected");
+        });
+
+        // Select clicked option
+        option.classList.add("_selected");
+
+        // Update hidden input value
+        radioOptionsInput.value = option.getAttribute("data-radio_option_value");
+    });
+});
+
+export const lcsRadioSelectionEvent = true;</code></pre>
         </article>
     </section>
 

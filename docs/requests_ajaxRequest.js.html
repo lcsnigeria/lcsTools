@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: requests/ajaxRequest.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: requests/ajaxRequest.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]'); // Get the AJAX object meta tag.
+const lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {}; // Parse the AJAX object from the meta tag.
+let isRunningAjax = false; // A flag to ensure only one AJAX request runs at a time.
+
+/**
+ * Sends an AJAX request with JSON data or FormData for file uploads.
+ *
+ * This function prevents multiple concurrent AJAX requests by checking the `isRunningAjax` flag. 
+ * It supports both JSON data and FormData (for file uploads), automatically managing headers 
+ * and ensuring secure communication with the server using a nonce (if applicable).
+ * 
+ * The function dynamically detects whether `data` is a plain object or `FormData`, 
+ * applying the appropriate `Content-Type` header. If a nonce is provided in `lcs_ajax_object`, 
+ * it is included in the request for security.
+ *
+ * @param {Record&lt;string, any> | FormData} data - The data to send in the request body. Use `FormData` for file uploads.
+ * @param {string} [url=lcs_ajax_object.ajaxurl || ''] - The request URL. Defaults to the AJAX endpoint from `lcs_ajax_object.ajaxurl`, if available.
+ * @param {string} [method='POST'] - The HTTP method to use (e.g., 'GET', 'POST'). Defaults to 'POST'.
+ * @param {Record&lt;string, string>} [headers={}] - Additional headers to include, merged with default headers based on the data type.
+ * @returns {Promise&lt;Record&lt;string, any>>} - A promise that resolves with the response data (JSON object) or rejects with an error message.
+ */
+export async function sendAjaxRequest(data, url = lcs_ajax_object.ajaxurl || '', method = 'POST', headers = {}) {
+    return new Promise(async (resolve, reject) => {
+        /**
+         * Ensure only one AJAX request runs at a time.
+         * If another request is already running (`isRunningAjax` is true), wait until it finishes.
+         */
+        while (isRunningAjax) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        isRunningAjax = true; // Block further requests until the current one is finished.
+
+        method = method.toUpperCase(); // Normalize the HTTP method to uppercase.
+        const isFormData = data instanceof FormData; // Check if the data is FormData (for file uploads).
+
+        /**
+         * Set default headers:
+         * - For JSON data: Set 'Content-Type' to 'application/json' and 'X-Requested-With' to 'XMLHttpRequest'.
+         * - For FormData: Skip 'Content-Type' since it is automatically handled by the browser.
+         */
+        const defaultHeaders = isFormData
+            ? { 'X-Requested-With': 'XMLHttpRequest' }
+            : {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            };
+
+        // Merge user-specified headers with the default headers.
+        const requestHeaders = {
+            ...defaultHeaders,
+            ...headers
+        };
+
+        let isSecureRequest = true;
+        if (isFormData) {
+            // Append a flag to indicate if the request is secured.
+            data.append('isNonceRetrieval', true);
+        
+            // Initialize data.secure if not set.
+            if (!data.has('secure')) {
+                data.append('secure', true);
+            }
+        
+            // If secure is explicitly set to false, mark the request as secured.
+            if (data.get('secure') === false) {
+                isSecureRequest = false;
+                data.append('isNonceRetrieval', false);
+            }
+        } else {
+            // Append a flag to indicate if the request is secured.
+            data.isNonceRetrieval = true;
+        
+            // Initialize data.secure if not set.
+            if (!data.hasOwnProperty('secure')) {
+                data.secure = true;
+            }
+        
+            // If secure is explicitly set to false, mark the request as secured.
+            if (data.secure === false) {
+                isSecureRequest = false;
+                data.isNonceRetrieval = false;
+            }
+        }        
+
+        /**
+         * Attach a nonce for security verification if required.
+         * The nonce is added to the request to prevent CSRF attacks.
+         * If nonce retrieval fails, the request is aborted.
+         */
+        if (isSecureRequest) {
+            try {
+                // Default nonce name
+                let nonce_name = 'lcs_ajax_nonce';
+                const nonce_data = {};
+                // Determine the nonce name based on the data structure.
+                if (isFormData) {
+                    if (data.has('nonce_name')) {
+                        nonce_name = data.get('nonce_name');
+                    }
+                } else {
+                    if (data.hasOwnProperty('nonce_name')) {
+                        nonce_name = data.nonce_name;
+                    }
+                }
+                nonce_data.nonce_name = nonce_name;
+                nonce_data.isNonceRetrieval = true;
+
+                // Fetch the nonce from the server.
+                const nonce = await lcsGetNonce(nonce_data, url);
+                
+                if (isFormData) {
+                    data.append('nonce', nonce); // Append nonce for FormData.
+                    data.append('nonce_name', nonce_name); // Append nonce_name
+                    data.delete('isNonceRetrieval');
+                } else {
+                    data.nonce = nonce; // Add nonce for JSON data.
+                    data.nonce_name = nonce_name; // Add nonce_name
+                    delete data.isNonceRetrieval;
+                }
+                
+            } catch (error) { 
+                console.error("Error occurred while fetching nonce:", error.message);
+                isRunningAjax = false; // Reset flag
+                return reject(new Error("Failed to fetch nonce, aborting request."));
+            }
+        }
+
+        /**
+         * Prepare the fetch request options:
+         * - Headers are skipped for FormData since it is handled by the browser automatically.
+         * - If the method is 'GET', no body is included.
+         */
+        const options = {
+            method,
+            headers: isFormData ? undefined : requestHeaders,
+            body: method === 'GET' ? undefined : isFormData ? data : JSON.stringify(data)
+        };
+
+        try {
+            // Perform the AJAX request using the Fetch API.
+            const response = await fetch(url, options);
+
+            // Validate if the response is JSON.
+            const contentType = response.headers.get('Content-Type') || '';
+            if (!contentType.includes('application/json')) {
+                const textResponse = await response.text();
+                throw new Error(`Expected JSON but received: ${contentType}. Response: ${textResponse}`);
+            }
+
+            const responseData = await response.json();
+            resolve(responseData);
+        } catch (error) {
+            console.error('Request failed:', error);
+            reject(new Error('Request failed due to server error!'));
+        } finally {
+            isRunningAjax = false; // Ensure the flag is reset, even if an error occurs.
+        }
+    });
+}
+
+
+/**
+ * Fetches a nonce from the server for AJAX requests.
+ * 
+ * The function sends a request to the server to fetch a nonce, which can be used for 
+ * securing AJAX requests. The nonce is stored in a global object and returned once fetched.
+ * 
+ * @param {object} nonceData The object data containing name of the nonce to fetch and flag indicating it is a request to fetch none. 
+ * 
+ * @returns {Promise&lt;string>} A Promise that resolves with the fetched nonce string.
+ * @throws {Error} Throws an error if the request fails or the server responds with an error.
+ */
+async function lcsGetNonce(nonceData, url) {
+    // Return a new Promise to handle asynchronous behavior
+    return new Promise((resolve, reject) => {
+
+        /**
+         * Define the request payload for fetching the nonce.
+         */
+        const requestData = {
+            nonce_name: nonceData.nonce_name, // Specify the nonce name.
+            isNonceRetrieval: nonceData.isNonceRetrieval
+        };
+
+        // Make the request using the Fetch API
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest' // Standard header for AJAX requests
+            },
+            body: JSON.stringify(requestData) // Send the request data as JSON
+        })
+        .then((response) => {
+            // Parse the response JSON once the request is successful
+            response.json().then((responseData) => {
+                if (!response.ok) {
+                    // Reject the promise if the server responded with an error status
+                    reject(new Error(`Nonce fetch failed with status: ${response.status}`));
+                }
+
+                // Update the global nonce object with the fetched nonce
+                lcs_ajax_object.nonce = responseData.data;
+                
+                // Resolve the promise with the fetched nonce
+                resolve(lcs_ajax_object.nonce);
+            });
+        })
+        .catch((error) => {
+            // Reject the promise if there was a network error or fetch failure
+            reject(new Error(`Nonce request failed: ${error.message}`));
+        });
+    });
+}
+
+export const lcsAjaxRequest = true;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Events</h3><ul><li><a href="global.html#event:click">click</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alert">alert</a></li><li><a href="global.html#arrayHasSimilarItems">arrayHasSimilarItems</a></li><li><a href="global.html#capitalizeWords">capitalizeWords</a></li><li><a href="global.html#clearLocalDatabase">clearLocalDatabase</a></li><li><a href="global.html#createCityOptions">createCityOptions</a></li><li><a href="global.html#createCountryOptions">createCountryOptions</a></li><li><a href="global.html#createStateOptions">createStateOptions</a></li><li><a href="global.html#deleteLocalDatabaseData">deleteLocalDatabaseData</a></li><li><a href="global.html#filterArraySimilarItems">filterArraySimilarItems</a></li><li><a href="global.html#generateAttributes">generateAttributes</a></li><li><a href="global.html#generateCodes">generateCodes</a></li><li><a href="global.html#generateConfirmPasswordField">generateConfirmPasswordField</a></li><li><a href="global.html#generateCountrySelection">generateCountrySelection</a></li><li><a href="global.html#generateDropdownOptions">generateDropdownOptions</a></li><li><a href="global.html#generatePillOptions">generatePillOptions</a></li><li><a href="global.html#generateRadioOptions">generateRadioOptions</a></li><li><a href="global.html#getAllCities">getAllCities</a></li><li><a href="global.html#getAllCountries">getAllCountries</a></li><li><a href="global.html#getAllStates">getAllStates</a></li><li><a href="global.html#getCountriesLocalDatabase">getCountriesLocalDatabase</a></li><li><a href="global.html#getCountryCallingCode">getCountryCallingCode</a></li><li><a href="global.html#getCountryCurrencyCode">getCountryCurrencyCode</a></li><li><a href="global.html#getCountryFlag">getCountryFlag</a></li><li><a href="global.html#getCountryISOCode">getCountryISOCode</a></li><li><a href="global.html#getCountryOfficialName">getCountryOfficialName</a></li><li><a href="global.html#getCurrentLocation">getCurrentLocation</a></li><li><a href="global.html#getLocalDatabaseData">getLocalDatabaseData</a></li><li><a href="global.html#initializeLocalDatabase">initializeLocalDatabase</a></li><li><a href="global.html#lcsCloseContainerElement">lcsCloseContainerElement</a></li><li><a href="global.html#lcsDBCache">lcsDBCache</a></li><li><a href="global.html#lcsDropdownOptionSelection">lcsDropdownOptionSelection</a></li><li><a href="global.html#lcsFetchCountrySelectionData">lcsFetchCountrySelectionData</a></li><li><a href="global.html#lcsForm">lcsForm</a></li><li><a href="global.html#lcsFormInputLengthValidation">lcsFormInputLengthValidation</a></li><li><a href="global.html#lcsFormSubmission">lcsFormSubmission</a></li><li><a href="global.html#lcsGetCitiesFromLocalDatabase">lcsGetCitiesFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountriesFromLocalDatabase">lcsGetCountriesFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryCallingCodeFromLocalDatabase">lcsGetCountryCallingCodeFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryCurrencyCodeFromLocalDatabase">lcsGetCountryCurrencyCodeFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryFlagFromLocalDatabase">lcsGetCountryFlagFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryISOCodeFromLocalDatabase">lcsGetCountryISOCodeFromLocalDatabase</a></li><li><a href="global.html#lcsGetCountryOfficialNameFromLocalDatabase">lcsGetCountryOfficialNameFromLocalDatabase</a></li><li><a href="global.html#lcsGetNonce">lcsGetNonce</a></li><li><a href="global.html#lcsGetStatesFromLocalDatabase">lcsGetStatesFromLocalDatabase</a></li><li><a href="global.html#lcsHideSpinnerOverlay">lcsHideSpinnerOverlay</a></li><li><a href="global.html#lcsPillOptionSelection">lcsPillOptionSelection</a></li><li><a href="global.html#lcsShowHidePasswordEvent">lcsShowHidePasswordEvent</a></li><li><a href="global.html#lcsShowSpinnerOverlay">lcsShowSpinnerOverlay</a></li><li><a href="global.html#lcsStoreCitiesInLocalDatabase">lcsStoreCitiesInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountriesInLocalDatabase">lcsStoreCountriesInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryCallingCodeInLocalDatabase">lcsStoreCountryCallingCodeInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryCurrencyCodeInLocalDatabase">lcsStoreCountryCurrencyCodeInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryFlagInLocalDatabase">lcsStoreCountryFlagInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryISOCodeInLocalDatabase">lcsStoreCountryISOCodeInLocalDatabase</a></li><li><a href="global.html#lcsStoreCountryOfficialNameInLocalDatabase">lcsStoreCountryOfficialNameInLocalDatabase</a></li><li><a href="global.html#lcsStoreStatesInLocalDatabase">lcsStoreStatesInLocalDatabase</a></li><li><a href="global.html#passwordStrength">passwordStrength</a></li><li><a href="global.html#scrollTo">scrollTo</a></li><li><a href="global.html#sendAjaxRequest">sendAjaxRequest</a></li><li><a href="global.html#storeLocalDatabaseData">storeLocalDatabaseData</a></li><li><a href="global.html#updateLocalDatabaseData">updateLocalDatabaseData</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a>
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
