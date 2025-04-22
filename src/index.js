@@ -6,6 +6,7 @@ export * from './js/workingTools/arrayOps.js';
 export * from './js/workingTools/credsAndCodes.js';
 export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';
+export * from './js/workingTools/elementOps.js';
 export * from './js/locationTools.js';
 export * from './js/alertsAndLogs/alerts.js';
 

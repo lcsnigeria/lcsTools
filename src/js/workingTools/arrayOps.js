@@ -68,14 +68,14 @@ export function filterArraySimilarItems(
  * @returns {Array} A new array containing only the first occurrence of each value.
  *
  * @example
- * removeDuplicates([1, 2, 2, 3, 4, 4]);
+ * removeArrayDuplicates([1, 2, 2, 3, 4, 4]);
  * // → [1, 2, 3, 4]
  *
  * @example
- * removeDuplicates(['a','b','a','c']);
+ * removeArrayDuplicates(['a','b','a','c']);
  * // → ['a', 'b', 'c']
  */
-export function removeDuplicates(array) {
+export function removeArrayDuplicates(array) {
     return Array.isArray(array) ? [...new Set(array)] : [];
 }
 
@@ -176,14 +176,14 @@ export function removeFalsyItems(array) {
  * @returns {Array} A new array of items in `arr1` that are not found in `arr2`.
  *
  * @example
- * differenceArrays([1, 2, 3], [2, 4]);
+ * arrayDifference([1, 2, 3], [2, 4]);
  * // → [1, 3]
  *
  * @example
- * differenceArrays(['a','b','c'], ['c','d']);
+ * arrayDifference(['a','b','c'], ['c','d']);
  * // → ['a','b']
  */
-export function differenceArrays(arr1, arr2) {
+export function arrayDifference(arr1, arr2) {
     const exclude = new Set(arr2);
     return Array.isArray(arr1)
         ? arr1.filter(item => !exclude.has(item))
@@ -202,25 +202,25 @@ export function differenceArrays(arr1, arr2) {
  * @returns {Array} A new array containing only the items found in both `arr1` and `arr2`.
  *
  * @example
- * intersectArrays([1, 2, 3], [2, 3, 4]);
+ * arrayIntersect([1, 2, 3], [2, 3, 4]);
  * // → [2, 3]
  *
  * @example
  * // Strings and mixed types
- * intersectArrays(['a', 'b', 'c'], ['c', 'd', 'a']);
+ * arrayIntersect(['a', 'b', 'c'], ['c', 'd', 'a']);
  * // → ['a', 'c']
  *
  * @example
  * // If arr1 is not an array, returns []
- * intersectArrays(null, [1, 2, 3]);
+ * arrayIntersect(null, [1, 2, 3]);
  * // → []
  *
  * @example
  * // Preserves duplicates in arr1 if they also appear in arr2
- * intersectArrays([1, 2, 2, 3], [2, 3]);
+ * arrayIntersect([1, 2, 2, 3], [2, 3]);
  * // → [2, 2, 3]
  */
-export function intersectArrays(arr1, arr2) {
+export function arrayIntersect(arr1, arr2) {
     if (!Array.isArray(arr1) || !Array.isArray(arr2)) {
         return [];
     }
