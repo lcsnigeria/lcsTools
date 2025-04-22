@@ -15,8 +15,9 @@ const lcsDBCache = {};
 
 /**
  * Initializes and returns an IndexedDB database. If the database with the given name
- * already exists in the cache, it returns the cached instance. Otherwise, it opens
- * a new connection to the database and creates the 'store' object store if it doesn't exist.
+ * already exists in the cache and is still open, it returns the cached instance.
+ * Otherwise, it opens a new connection to the database and creates the 'store'
+ * object store if it doesn't exist.
  *
  * @async
  * @param {string} [dbName='lcsLocalDatabase'] - The name of the IndexedDB database.
@@ -24,23 +25,35 @@ const lcsDBCache = {};
  * @throws {LCSError} If the database fails to open.
  *
  * @example
- * (async function() {
- *   try {
- *     const db = await initializeLocalDatabase('myDB');
- *     console.log('Database initialized:', db.name);
- *   } catch (err) {
- *     console.error(err);
- *   }
- * })();
+ * // Initialize the database
+ * initializeLocalDatabase('myDatabase')
+ *   .then(db => {
+ *     console.log('Database initialized:', db);
+ *   })
+ *   .catch(error => {
+ *     console.error('Error initializing database:', error);
+ *   });
  */
 export async function initializeLocalDatabase(dbName = 'lcsLocalDatabase') {
-  if (lcsDBCache[dbName]) return lcsDBCache[dbName];
+  // Check if a cached database exists
+  if (lcsDBCache[dbName]) {
+    try {
+      // Test if the connection is still open
+      lcsDBCache[dbName].objectStoreNames;
+      return lcsDBCache[dbName];
+    } catch (error) {
+      if (error.name === 'InvalidStateError') {
+        // Connection is closed, remove it from cache
+        delete lcsDBCache[dbName];
+      }
+    }
+  }
 
+  // Open a new database connection
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, 1);
 
     request.onupgradeneeded = function (e) {
-      /** @type {IDBDatabase} */
       const db = e.target.result;
       if (!db.objectStoreNames.contains('store')) {
         db.createObjectStore('store');
@@ -48,20 +61,18 @@ export async function initializeLocalDatabase(dbName = 'lcsLocalDatabase') {
     };
 
     request.onsuccess = function (e) {
-      /** @type {IDBDatabase} */
       const db = e.target.result;
-      // Close and remove cache if version changes elsewhere (upgrade/delete)
-      db.onversionchange = () => {
-        db.close();
+      // Handle unexpected closures
+      db.onclose = function () {
+        console.log(`Database ${dbName} connection closed unexpectedly`);
         delete lcsDBCache[dbName];
-        console.warn(`Database "${dbName}" closed due to version change elsewhere.`);
       };
       lcsDBCache[dbName] = db;
       resolve(db);
     };
 
-    request.onerror = function () {
-      reject({ message: `Failed to open database: ${dbName}` });
+    request.onerror = function (e) {
+      reject(new Error(`Failed to open database ${dbName}: ${e.target.error}`));
     };
   });
 }
@@ -76,16 +87,6 @@ export async function initializeLocalDatabase(dbName = 'lcsLocalDatabase') {
  * @param {string} [dbName='lcsLocalDatabase'] - The name of the IndexedDB database.
  * @returns {Promise<boolean>} A promise that resolves with true if the data is stored successfully.
  * @throws {LCSError} If the key already exists or if storing the data fails.
- *
- * @example
- * (async function() {
- *   try {
- *     const success = await storeLocalDatabaseData('user_1', { name: 'Alice' }, 'myDB');
- *     console.log('Stored:', success);
- *   } catch (err) {
- *     console.error(err.message);
- *   }
- * })();
  */
 export async function storeLocalDatabaseData(key, value, dbName = 'lcsLocalDatabase') {
   const db = await initializeLocalDatabase(dbName);
@@ -94,19 +95,16 @@ export async function storeLocalDatabaseData(key, value, dbName = 'lcsLocalDatab
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
 
-    tx.oncomplete = () => resolve(true);
-    tx.onerror    = () => reject({ message: tx.error?.message || `Transaction failed for key: ${key}` });
-    tx.onabort    = () => reject({ message: tx.error?.message || `Transaction aborted for key: ${key}` });
-
     const getRequest = store.get(key);
-    getRequest.onsuccess = (e) => {
-      if (e.target.result !== undefined) {
-        tx.abort(); // triggers onabort
+    getRequest.onsuccess = () => {
+      if (getRequest.result !== undefined) {
+        reject(`Key "${key}" already exists.`);
       } else {
-        store.add(value, key);
+        const addRequest = store.add(value, key);
+        addRequest.onsuccess = () => resolve(true);
+        addRequest.onerror = () => reject(`Failed to store key: ${key}`);
       }
     };
-    getRequest.onerror = () => tx.abort();
   });
 }
 
@@ -118,16 +116,6 @@ export async function storeLocalDatabaseData(key, value, dbName = 'lcsLocalDatab
  * @param {string} [dbName='lcsLocalDatabase'] - The name of the IndexedDB database.
  * @returns {Promise<*>} A promise that resolves with the retrieved data, or undefined if the key is not found.
  * @throws {LCSError} If retrieving the data fails.
- *
- * @example
- * (async function() {
- *   try {
- *     const data = await getLocalDatabaseData('user_1', 'myDB');
- *     console.log('Retrieved:', data);
- *   } catch (err) {
- *     console.error(err.message);
- *   }
- * })();
  */
 export async function getLocalDatabaseData(key, dbName = 'lcsLocalDatabase') {
   const db = await initializeLocalDatabase(dbName);
@@ -135,10 +123,10 @@ export async function getLocalDatabaseData(key, dbName = 'lcsLocalDatabase') {
   return new Promise((resolve, reject) => {
     const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
-    const getRequest = store.get(key);
 
+    const getRequest = store.get(key);
     getRequest.onsuccess = () => resolve(getRequest.result);
-    getRequest.onerror  = () => reject({ message: `Failed to get key: ${key}` });
+    getRequest.onerror = () => reject(`Failed to get key: ${key}`);
   });
 }
 
@@ -151,16 +139,6 @@ export async function getLocalDatabaseData(key, dbName = 'lcsLocalDatabase') {
  * @param {string} [dbName='lcsLocalDatabase'] - The name of the IndexedDB database.
  * @returns {Promise<boolean>} A promise that resolves with true if the data is updated successfully.
  * @throws {LCSError} If updating the data fails.
- *
- * @example
- * (async function() {
- *   try {
- *     const updated = await updateLocalDatabaseData('user_1', { name: 'Bob' }, 'myDB');
- *     console.log('Updated:', updated);
- *   } catch (err) {
- *     console.error(err.message);
- *   }
- * })();
  */
 export async function updateLocalDatabaseData(key, value, dbName = 'lcsLocalDatabase') {
   const db = await initializeLocalDatabase(dbName);
@@ -168,12 +146,9 @@ export async function updateLocalDatabaseData(key, value, dbName = 'lcsLocalData
   return new Promise((resolve, reject) => {
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
-
-    tx.oncomplete = () => resolve(true);
-    tx.onerror    = () => reject({ message: tx.error?.message || `Transaction failed to update key: ${key}` });
-    tx.onabort    = () => reject({ message: tx.error?.message || `Transaction aborted for key: ${key}` });
-
-    store.put(value, key);
+    const putRequest = store.put(value, key);
+    putRequest.onsuccess = () => resolve(true);
+    putRequest.onerror = () => reject(`Failed to update key: ${key}`);
   });
 }
 
@@ -185,16 +160,6 @@ export async function updateLocalDatabaseData(key, value, dbName = 'lcsLocalData
  * @param {string} [dbName='lcsLocalDatabase'] - The name of the IndexedDB database.
  * @returns {Promise<boolean>} A promise that resolves with true if the data is deleted successfully.
  * @throws {LCSError} If deleting the data fails.
- *
- * @example
- * (async function() {
- *   try {
- *     const deleted = await deleteLocalDatabaseData('user_1', 'myDB');
- *     console.log('Deleted:', deleted);
- *   } catch (err) {
- *     console.error(err.message);
- *   }
- * })();
  */
 export async function deleteLocalDatabaseData(key, dbName = 'lcsLocalDatabase') {
   const db = await initializeLocalDatabase(dbName);
@@ -202,12 +167,9 @@ export async function deleteLocalDatabaseData(key, dbName = 'lcsLocalDatabase') 
   return new Promise((resolve, reject) => {
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
-
-    tx.oncomplete = () => resolve(true);
-    tx.onerror    = () => reject({ message: tx.error?.message || `Transaction failed to delete key: ${key}` });
-    tx.onabort    = () => reject({ message: tx.error?.message || `Transaction aborted for key: ${key}` });
-
-    store.delete(key);
+    const deleteRequest = store.delete(key);
+    deleteRequest.onsuccess = () => resolve(true);
+    deleteRequest.onerror = () => reject(`Failed to delete key: ${key}`);
   });
 }
 
@@ -220,30 +182,17 @@ export async function deleteLocalDatabaseData(key, dbName = 'lcsLocalDatabase') 
  * @param {boolean} [alsoDeleteDbName=false] - If true, the entire database will be deleted.
  * @returns {Promise<boolean>} A promise that resolves with true if the operation is successful.
  * @throws {LCSError} If clearing the store or deleting the database fails.
- *
- * @example
- * // Clear just the object store:
- * await clearLocalDatabase('myDB');
- *
- * // Delete entire database:
- * await clearLocalDatabase('myDB', true);
  */
 export async function clearLocalDatabase(dbName = 'lcsLocalDatabase', alsoDeleteDbName = false) {
   if (alsoDeleteDbName) {
     if (lcsDBCache[dbName]) {
       lcsDBCache[dbName].close();
+      delete lcsDBCache[dbName];
     }
     return new Promise((resolve, reject) => {
       const deleteRequest = indexedDB.deleteDatabase(dbName);
-
-      deleteRequest.onblocked = () => {
-        console.warn(`Deletion of "${dbName}" is blocked by another open connection.`);
-      };
-      deleteRequest.onsuccess = () => {
-        delete lcsDBCache[dbName];
-        resolve(true);
-      };
-      deleteRequest.onerror = () => reject({ message: `Failed to delete database: ${dbName}` });
+      deleteRequest.onsuccess = () => resolve(true);
+      deleteRequest.onerror = () => reject(`Failed to delete database: ${dbName}`);
     });
   } else {
     const db = await initializeLocalDatabase(dbName);
@@ -251,18 +200,11 @@ export async function clearLocalDatabase(dbName = 'lcsLocalDatabase', alsoDelete
     return new Promise((resolve, reject) => {
       const tx = db.transaction('store', 'readwrite');
       const store = tx.objectStore('store');
-
-      tx.oncomplete = () => resolve(true);
-      tx.onerror    = () => reject({ message: tx.error?.message || `Failed to clear store in: ${dbName}` });
-      tx.onabort    = () => reject({ message: tx.error?.message || `Clearing aborted for: ${dbName}` });
-
-      store.clear();
+      const clearRequest = store.clear();
+      clearRequest.onsuccess = () => resolve(true);
+      clearRequest.onerror = () => reject(`Failed to clear store in: ${dbName}`);
     });
   }
 }
 
-/**
- * Indicates that the lcs local database module is available.
- * @constant {boolean}
- */
 export const lcsLocalDatabase = true;
