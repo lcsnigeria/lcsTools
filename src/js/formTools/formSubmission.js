@@ -1,37 +1,24 @@
 /**
- * Intercepts form submissions for elements with the class '.lcsForm'.
- * 
- * Prevents the default submission behavior to allow for custom validation,
- * AJAX handling, or other JavaScript-based logic before submitting the form.
- * 
- * To implement custom logic, add it inside the conditional block.
- */
-document.addEventListener('submit', (event) => {
-    const formTarget = event.target.closest('.lcsForm');
-    
-    if (formTarget) {
-        event.preventDefault();
-        // console.log('Form submission prevented for .lcsForm');
-    }
-});
-
-/**
- * Global form handler for all forms with the class `lcsForm`.
+ * Intercepts and handles form submissions for elements with the class `.lcsForm`.
  *
- * This listener intercepts form submissions to perform client-side validation
- * and data extraction before optionally triggering a custom callback.
+ * This script prevents the default form submission behavior to allow for custom
+ * validation, data extraction, and optional callback execution. It ensures that
+ * all required fields are filled, collects form data, and optionally invokes a
+ * user-defined callback function specified via the `data-onsubmit_callback` attribute.
  *
  * @event submit
  * @param {SubmitEvent} event - The native submit event object.
  * @target HTMLFormElement - Any form element with the class `lcsForm`.
  *
- * @fires lcsTools.alert - (UNUSED) When required fields are missing, this method shows an error alert.
- * @callback onsubmit_callback - Optional. A globally defined function named via the `data-onsubmit_callback` attribute
- *                                that is called after validation and data extraction.
+ * @fires lcsTools.alert - (UNUSED) Displays an error alert when required fields are missing.
+ * @callback onsubmit_callback - An optional globally defined function specified via the
+ *                                `data-onsubmit_callback` attribute, executed after validation
+ *                                and data extraction.
  *
  * @global
- * @property {boolean} window.lcsForm.isValid - True if all required fields are filled.
- * @property {Object} window.lcsForm.data - A key-value store of form inputs and values.
+ * @property {HTMLFormElement} window.lcsForm.form - The form element being submitted.
+ * @property {boolean} window.lcsForm.isValid - Indicates whether all required fields are filled.
+ * @property {Object} window.lcsForm.data - A key-value store of form inputs and their values.
  *
  * @example <caption>Basic usage</caption>
  * <form class="lcsForm" data-onsubmit_callback="myCustomHandler">
@@ -62,12 +49,17 @@ document.addEventListener("submit", (event) => {
     event.preventDefault();
 
     /**
-     * Initialize or reset global form object to track state and collected data.
+     * Global form state manager used to initialize or reset the form tracking object.
+     *
+     * @name lcsForm
+     * @type {Object}
      * @global
-     * @property {boolean} isValid - Indicates if the form passed validation.
-     * @property {Object} data - A key-value map of submitted form data.
+     * @property {HTMLFormElement} form   - The form element being tracked.
+     * @property {boolean}           isValid - Indicates if the form passed validation.
+     * @property {Object<string, any>} data    - A key–value map of collected form data.
      */
     window.lcsForm = {
+        form: event.target.closest('.lcsForm'),
         isValid: false,
         data: {}
     };
@@ -86,7 +78,7 @@ document.addEventListener("submit", (event) => {
      * Collect all input and textarea elements marked as required
      * @type {HTMLElement[]}
      */
-    const requiredFields = Array.from(formTarget.querySelectorAll('input[required], input._required, textarea[required]'));
+    const requiredFields = Array.from(formTarget.querySelectorAll('input[required], select[required], input._required, textarea[required]'));
 
     /** 
      * Stores the list of unfilled required fields
@@ -137,7 +129,7 @@ document.addEventListener("submit", (event) => {
      * Excludes input[type="submit"]
      */
     const allFields = Array.from(
-        formTarget.querySelectorAll('input[name]:not([type="submit"]), textarea[name]')
+        formTarget.querySelectorAll('input[name]:not([type="submit"]), select[name], textarea[name]')
     );
 
     // Loop through each form element and extract its value

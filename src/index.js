@@ -1,3 +1,6 @@
+// Hooks
+export { hooks } from './js/hooks.js';
+
 // Storage
 export * from './js/dataStorage/localDatabase.js';
 

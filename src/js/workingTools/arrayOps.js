@@ -1,3 +1,5 @@
+import { capitalizeWords } from "./stringOps";
+
 /**
  * Checks if any item in the given ItemsParam is partially matched in ArrayParam (case-insensitive).
  *
@@ -226,4 +228,56 @@ export function arrayIntersect(arr1, arr2) {
     }
     const lookup = new Set(arr2);
     return arr1.filter(item => lookup.has(item));
+}
+
+/**
+ * Returns a new object containing only the properties from `source`
+ * whose keys are listed in `keys`.
+ *
+ * @param {Object} source - The object to filter.
+ * @param {string|string[]} keys - A key or array of keys to keep.
+ * @returns {Object} A new object containing only the picked key–value pairs.
+ *
+ * @example
+ * const user = { id: 1, name: "Alice", email: "alice@example.com" };
+ *
+ * // Single key
+ * filterObjectByKeys(user, "name");
+ * // → { name: "Alice" }
+ *
+ * // Multiple keys
+ * filterObjectByKeys(user, ["id", "email"]);
+ * // → { id: 1, email: "alice@example.com" }
+ *
+ * // Non‑existent keys are ignored
+ * filterObjectByKeys(user, ["foo", "email"]);
+ * // → { email: "alice@example.com" }
+ */
+export function filterObjectByKeys(source, keys) {
+    // Normalize single string to array
+    const keyArr = typeof keys === "string" ? [keys] : Array.isArray(keys) ? keys : [];
+  
+    const result = {};
+    for (const key of keyArr) {
+      if (key in source) {
+        result[key] = source[key];
+      }
+    }
+    return result;
+}
+
+/**
+ * Checks if all items in the array are keys in the given object.
+ *
+ * @param {Object} targetObject - Object to check against.
+ * @param {string[]} keysArray - Array of keys to check.
+ * @returns {boolean} True if all keys exist in the object, false otherwise.
+ *
+ * @example
+ * const obj = { name: "John", age: 30, job: "Engineer" };
+ * const keys = ["name", "age"];
+ * objectHasArrayItemsAsKeys(obj, keys); // true
+ */
+export function objectHasArrayItemsAsKeys(targetObject, keysArray) {
+    return keysArray.every(key => key in targetObject);
 }

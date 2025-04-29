@@ -1,3 +1,5 @@
+import { hooks } from '../hooks.js';
+
 const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]'); // Get the AJAX object meta tag.
 const lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {}; // Parse the AJAX object from the meta tag.
 let isRunningAjax = false; // A flag to ensure only one AJAX request runs at a time.
@@ -107,7 +109,7 @@ export async function sendAjaxRequest(data, url = lcs_ajax_object.ajaxurl || '',
                 nonce_data.isNonceRetrieval = true;
 
                 // Fetch the nonce from the server.
-                const nonce = await lcsGetNonce(nonce_data, url);
+                const nonce = await getNonce(nonce_data, url);
                 
                 if (isFormData) {
                     data.append('nonce', nonce); // Append nonce for FormData.
@@ -122,6 +124,7 @@ export async function sendAjaxRequest(data, url = lcs_ajax_object.ajaxurl || '',
             } catch (error) { 
                 console.error("Error occurred while fetching nonce:", error.message);
                 isRunningAjax = false; // Reset flag
+                doAjaxRequestHooks();
                 return reject(new Error("Failed to fetch nonce, aborting request."));
             }
         }
@@ -145,13 +148,16 @@ export async function sendAjaxRequest(data, url = lcs_ajax_object.ajaxurl || '',
             const contentType = response.headers.get('Content-Type') || '';
             if (!contentType.includes('application/json')) {
                 const textResponse = await response.text();
+                doAjaxRequestHooks();
                 throw new Error(`Expected JSON but received: ${contentType}. Response: ${textResponse}`);
             }
 
             const responseData = await response.json();
+            doAjaxRequestHooks();
             resolve(responseData);
         } catch (error) {
             console.error('Request failed:', error);
+            doAjaxRequestHooks();
             reject(new Error('Request failed due to server error!'));
         } finally {
             isRunningAjax = false; // Ensure the flag is reset, even if an error occurs.
@@ -171,7 +177,7 @@ export async function sendAjaxRequest(data, url = lcs_ajax_object.ajaxurl || '',
  * @returns {Promise<string>} A Promise that resolves with the fetched nonce string.
  * @throws {Error} Throws an error if the request fails or the server responds with an error.
  */
-async function lcsGetNonce(nonceData, url) {
+export async function getNonce(nonceData, url) {
     // Return a new Promise to handle asynchronous behavior
     return new Promise((resolve, reject) => {
 
@@ -212,6 +218,28 @@ async function lcsGetNonce(nonceData, url) {
             reject(new Error(`Nonce request failed: ${error.message}`));
         });
     });
+}
+
+let executionCount = 0;
+/**
+ * Executes a series of hooks for AJAX requests at regular intervals.
+ * 
+ * This function triggers the `lcs_ajax_request` action hook every 500 milliseconds,
+ * up to a maximum of three executions. After the third execution, the interval is cleared.
+ * 
+ * @function doAjaxRequestHooks
+ * @example
+ * // Ensure you have a hook listener for 'lcs_ajax_request' before calling this function.
+ * doAjaxRequestHooks();
+ */
+function doAjaxRequestHooks() {
+    const intervalDef = setInterval(() => {
+        hooks.doAction('lcs_ajax_request');
+        executionCount++;
+        if (executionCount >= 3) {
+            clearInterval(intervalDef);
+        }
+    }, 500);
 }
 
 export const lcsAjaxRequest = true;

@@ -76,7 +76,7 @@ export function generateRadioOptions(name, options = [], attributes = {}) {
         `;
     });
 
-    output += `<input type="hidden" class="_radio_options_value" name="${name}" value="${options.find(option => option.selected)?.value || options[0].value}" required>`;
+    output += `<input type="hidden" class="_radio_options_value" name="${name}" value="${options.find(option => option.selected)?.value || options[0].value}">`;
     output += '</div></div>';
     return output;
 }

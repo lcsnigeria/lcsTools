@@ -1,65 +1,82 @@
 // Importing the CSS file for styling the dropdown selection
 import '../../css/formTools/dropdownOptionSelection.css';
+import { generateCodes } from '../workingTools/credsAndCodes.js';
+
+// Initialize global storage
+window.lcsDropdownOptions = {};
 
 /**
  * Generates a custom dropdown with selectable options and optional search bar.
  *
- * @param {string} name - The name of the dropdown group (used as the name attribute of the hidden input).
- * @param {Array} options - An array of option objects with `label`, `value`, optional `icon`, `selected`, and `attributes`.
- * @param {string} [placeholder='Select options'] - Default placeholder text if no option is selected.
- * @param {boolean} [searchBar=false] - Whether to include a search input.
- * @param {Object} [attributes={}] - Optional attributes, supports:
- *   - class: Additional class for the container
+ * @param {Object} config - Configuration object for the dropdown.
+ * @param {string} [config.label] - Optional label text above the dropdown.
+ * @param {string} config.name - Name of the dropdown group (used for hidden input).
+ * @param {Array} [config.options=[]] - Array of option objects with `label`, `value`, optional `icon`, `selected`, and `attributes`.
+ * @param {string} [config.placeholder='Select options'] - Placeholder text if no option is selected.
+ * @param {boolean} [config.searchBar=false] - Whether to include a search input.
+ * @param {Object} [config.attributes={}] - HTML attributes for the container (e.g., { class: 'custom-class' }).
+ * @param {Function} [config.selectCallback] - Callback when an option is selected: (value, optionElement, name).
  * @returns {string} - The HTML markup for the custom dropdown.
  */
-export function generateDropdownOptions(name, options = [], placeholder = 'Select options', searchBar = false, attributes = {}) {
-    // Determine the selected option (if any)
-    let selectedOption = null;
-    let selectedFound = false;
+export function generateDropdownOptions(config = {}) {
+    const defaultConfig = {
+        label: '',
+        name: '',
+        options: [],
+        placeholder: 'Select options',
+        searchBar: false,
+        attributes: {},
+        selectCallback: null
+    };
 
-    options.forEach(option => {
+    const finalConfig = { ...defaultConfig, ...config };
+    const dropdownID = generateCodes('mixed', 10);
+
+    window.lcsDropdownOptions[dropdownID] = {
+        name: finalConfig.name,
+        selectCallback: finalConfig.selectCallback
+    };
+
+    let selectedOption = null;
+    finalConfig.options.forEach(option => {
         if (!option.label && !option.value) {
             throw new Error("Each option must have at least a 'label' or 'value'.");
         }
-
         if (!option.label) option.label = option.value;
         if (!option.value) option.value = option.label;
-
-        if (option.selected && !selectedFound) {
+        if (option.selected && !selectedOption) {
             selectedOption = option;
-            selectedFound = true;
         } else {
             option.selected = false;
         }
     });
 
-    const displayPlaceholder = selectedOption?.label || placeholder;
-
-    const wrapperAttrs = {
-        class: `_form_group ${attributes.class || ''}`.trim(),
-        ...attributes
-    };
+    const displayPlaceholder = selectedOption?.label || finalConfig.placeholder;
+    
+    const wrapperAttrs = finalConfig.attributes || {};
+    if (Object.keys(wrapperAttrs).includes('class')) {
+        wrapperAttrs.class = '_form_group ' + wrapperAttrs.class;
+    } else {
+        wrapperAttrs.class = '_form_group';
+    }
+    wrapperAttrs['data-dropdown_id'] = dropdownID;
 
     let output = `<div ${generateAttributes(wrapperAttrs)}>`;
+    if (finalConfig.label) {
+        output += `<span class="_label">${finalConfig.label}</span>`;
+    }
     output += `
         <div class="_dropdown_options_placeholder">
             <span>${displayPlaceholder}</span>
             <i class="fas fa-chevron-down"></i>
         </div>
         <div class="_dropdown_options_wrapper">
-            ${searchBar ? `<input type="search" class="_dropdown_search" placeholder="Search...">` : ''}
-            <div class="_dropdown_options" data-dropdown_options_name="${name}">
+            ${finalConfig.searchBar ? `<input type="search" class="_dropdown_search" placeholder="Search...">` : ''}
+            <div class="_dropdown_options" data-dropdown_options_name="${finalConfig.name}">
     `;
 
-    options.forEach(option => {
-        const {
-            label,
-            value,
-            icon,
-            selected = false,
-            attributes: optionAttributes = []
-        } = option;
-
+    finalConfig.options.forEach(option => {
+        const { label, value, icon, selected = false, attributes: optionAttributes = [] } = option;
         const optionClasses = `_dropdown_option${selected ? ' _selected' : ''}`;
         const optionAttrs = {
             class: optionClasses,
@@ -80,7 +97,7 @@ export function generateDropdownOptions(name, options = [], placeholder = 'Selec
 
     output += `
             </div>
-            <input type="hidden" class="_dropdown_options_value" name="${name}" value="${selectedOption?.value || ''}" required>
+            <input type="hidden" class="_dropdown_options_value" name="${finalConfig.name}" value="${selectedOption?.value || ''}">
         </div>
     </div>`;
 
@@ -89,9 +106,6 @@ export function generateDropdownOptions(name, options = [], placeholder = 'Selec
 
 /**
  * Helper: Converts an object of attributes to HTML attribute string.
- *
- * @param {Object} attributes
- * @returns {string}
  */
 function generateAttributes(attributes) {
     return Object.entries(attributes)
@@ -100,32 +114,24 @@ function generateAttributes(attributes) {
 }
 
 /**
- * Dropdown behavior for custom dropdowns created by generateDropdownOptions().
- * Handles toggling options, updating input/placeholder, and icon switching.
+ * Dropdown behavior for custom dropdowns.
  */
 document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("click", (e) => {
         const placeholder = e.target.closest("._dropdown_options_placeholder");
         const option = e.target.closest("._dropdown_option");
 
-        // Clicked inside a placeholder — toggle options
         if (placeholder) {
             const dropdownGroup = placeholder.closest("._form_group");
-
-            // Toggle active state
             dropdownGroup.classList.toggle("_active");
-
-            // Swap chevron icon
             const icon = placeholder.querySelector("i");
             if (icon) {
                 icon.classList.toggle("fa-chevron-down");
                 icon.classList.toggle("fa-chevron-up");
             }
-
-            return; // stop here for placeholder clicks
+            return;
         }
 
-        // Clicked on an option
         if (option) {
             const optionsContainer = option.closest("._dropdown_options");
             const allOptions = optionsContainer.querySelectorAll("._dropdown_option");
@@ -134,35 +140,33 @@ document.addEventListener("DOMContentLoaded", () => {
             const input = dropdownGroup.querySelector("._dropdown_options_value");
             const placeholderText = dropdownGroup.querySelector("._dropdown_options_placeholder span");
 
-            // Remove _selected from all
             allOptions.forEach(opt => opt.classList.remove("_selected"));
-
-            // Mark this one as selected
             option.classList.add("_selected");
 
-            // Update placeholder text and input value
             placeholderText.textContent = option.querySelector("._dropdown_option_label").textContent;
             input.value = option.getAttribute("data-dropdown_option_value");
 
-            // Close the dropdown
             dropdownGroup.classList.remove("_active");
-
-            // Reset chevron icon
             const icon = dropdownGroup.querySelector("._dropdown_options_placeholder i");
             if (icon) {
                 icon.classList.add("fa-chevron-down");
                 icon.classList.remove("fa-chevron-up");
             }
 
+            const dropdownID = dropdownGroup.getAttribute('data-dropdown_id');
+            const dropdownData = window.lcsDropdownOptions[dropdownID];
+            if (dropdownData && typeof dropdownData.selectCallback === 'function') {
+                const selectedValue = option.getAttribute("data-dropdown_option_value");
+                dropdownData.selectCallback(selectedValue, option, dropdownData.name);
+            }
+
             return;
         }
 
-        // Clicked outside dropdown — close any open ones
         const dropdownWrapper = e.target.closest("._dropdown_options_wrapper");
         if (!dropdownWrapper) {
             document.querySelectorAll("._form_group._active").forEach(group => {
                 group.classList.remove("_active");
-    
                 const icon = group.querySelector("._dropdown_options_placeholder i");
                 if (icon) {
                     icon.classList.add("fa-chevron-down");
@@ -175,7 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /**
  * Dropdown search filtering logic.
- * Filters visible options as user types into the search input.
  */
 document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("input", (e) => {
@@ -189,17 +192,9 @@ document.addEventListener("DOMContentLoaded", () => {
         optionsContainer.querySelectorAll("._dropdown_option").forEach(option => {
             const label = option.querySelector("._dropdown_option_label");
             const text = label ? label.textContent.trim().toLowerCase() : "";
-
-            if (text.includes(filter)) {
-                option.style.display = "";
-            } else {
-                option.style.display = "none";
-            }
+            option.style.display = text.includes(filter) ? "" : "none";
         });
     });
 });
 
-/**
- * 
- */
 export const lcsDropdownOptionSelection = true;
