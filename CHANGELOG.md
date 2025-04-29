@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.28](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.27...v0.0.28) (2025-04-29)
+
+
+### Features
+
+* Enhance form tools and dropdown options ([363ee59](https://github.com/lcsnigeria/lcs_tools/commit/363ee5988a489f5c7df2661015ed5f2da58ab49c))
+* Integrate hooks for loading Choices library on AJAX requests ([caf64e7](https://github.com/lcsnigeria/lcs_tools/commit/caf64e7dfbb9d4f3cbc0ad325772488f03850f77))
+
 ### [0.0.27](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.26...v0.0.27) (2025-04-23)
 
 ### [0.0.26](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.25...v0.0.26) (2025-04-22)
