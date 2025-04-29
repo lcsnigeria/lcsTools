@@ -1,3 +1,5 @@
+import { hooks } from "../hooks";
+
 /**
  * Reads the <meta> tag named "lcs_external_libs_cdn" to determine which CDN provider
  * to use for loading external libraries. If not present, all configured providers
@@ -231,4 +233,5 @@ async function initializeChoices() {
 (async() => {
     await loadExternalLibsCDN();
     document.addEventListener('DOMContentLoaded', initializeChoices);
+    hooks.addAction('lcs_ajax_request', loadChoicesLibs);
 });
