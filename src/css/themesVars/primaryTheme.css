@@ -1,0 +1,36 @@
+:root {
+    --bgColor: #ffffff;
+    --textColor: #333333;
+    --primaryColor: #fc1436;
+    --whiteColor: #ffffff;
+    --blackColor: rgba(0,0,0);
+    --dimmedBlackColor: rgba(113, 113, 113, 1);
+    --darkOverlayColor: rgba(0,0,0,.65);
+    --lightGreyColor: rgb(240,240,240);
+    --dimmedLightGreyColor: rgba(231,231,231,1);
+    --formBorderColor: var(--primaryColor);
+    --formSubmitBG: var(--primaryColor);
+    --formSubmitText: var(--whiteColor);
+    --formInputColor: var(--textColor);
+    --formInputBG: var(--lightGreyColor);
+    --formInputBorder: 1px solid var(--formInputBG);
+    --formInputErrorBorder: 1px solid red;
+    --formInputOutline: 1px solid var(--formInputBG);
+    --formInputErrorOutline: 1px solid red;
+    --formLabelColor: var(--dimmedBlackColor);
+    --formDescColor: var(--dimmedBlackColor);
+    --formLinkColor: var(--primaryColor);
+    --radioOptionBorder: var(--textColor);
+    --radioOptionSelectedBorder: var(--primaryColor);
+    --radioOptionBG: var(--primaryColor);
+    --primaryButtonTextColor: var(--whiteColor);
+    --info: #CDE8F6;
+    --infoText: #447EAF;
+    --warn: #F8F4D5;
+    --warnText: #96722E;
+    --error: #ECC8C5;
+    --errorText: #B83C37;
+    --success: #DDF3D5;
+    --successText: #597151;
+    --errorTextColor: red;
+}

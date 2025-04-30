@@ -1,3 +1,6 @@
+import { hooks } from '../hooks';
+import '../../css/formTools/forms.css';
+
 /**
  * Intercepts and handles form submissions for elements with the class `.lcsForm`.
  *
@@ -88,8 +91,11 @@ document.addEventListener("submit", (event) => {
 
     // Loop through required fields to detect which ones are empty
     requiredFields.forEach((field) => {
+        const { tagName } = field;
+        const lcTagName = tagName.toLowerCase();
+
         const isEmpty = field.value.trim().length === 0;
-        if (isEmpty) {
+        if ( isEmpty || ( lcTagName === 'select' && field.selectedOptions.length <= 0 ) ) {
             unfilled.push(field);
 
             // Attempt to highlight the parent group if present
@@ -129,12 +135,14 @@ document.addEventListener("submit", (event) => {
      * Excludes input[type="submit"]
      */
     const allFields = Array.from(
-        formTarget.querySelectorAll('input[name]:not([type="submit"]), select[name], textarea[name]')
+        formTarget.querySelectorAll('input[name]:not([type="submit"]), select[name], textarea[name], ._pill_options_input[name]')
     );
 
     // Loop through each form element and extract its value
     allFields.forEach((field) => {
-        const { type, name } = field;
+        const { type, name, tagName } = field;
+        const lcTagName = tagName.toLowerCase();
+
         let value = null;
 
         // Handle file inputs separately
@@ -147,6 +155,23 @@ document.addEventListener("submit", (event) => {
         else if (type === 'checkbox') {
             value = field.checked ? 1 : 0;
         }
+        // Handle select options
+        else if (lcTagName === 'select') {
+            if (field.selectedOptions.length > 0) {
+                value = Array.from(field.selectedOptions).map(option => option.value);
+            }
+        }
+        // Handle pill options
+        else if (field.classList.contains('_pill_options_value') || field.classList.contains('_dropdown_options_value')) {
+            const jsonStrigifiedValue = field.value.trim();
+            const jsonParsedValue = JSON.parse(jsonStrigifiedValue);
+            if (Array.isArray(jsonParsedValue) && jsonParsedValue.length > 0) {
+                value = [];
+                jsonParsedValue.forEach(pillValue => {
+                    value.push(pillValue);
+                });
+            }
+        }
         // Handle standard input and textarea values
         else {
             const trimmed = field.value.trim();
@@ -154,9 +179,10 @@ document.addEventListener("submit", (event) => {
         }
 
         // Only save if the field has a value
-        if (value !== null) {
-            // Convert field name for file arrays (e.g. `images[]` to `images_files`)
-            const key = (type === 'file') ? name.replace(/\[\]/g, '_files') : name;
+        if (value !== null || (Array.isArray(value) && value.length > 0)) {
+            // Convert field name for file|select (in multiple) arrays (e.g. `images[]` to `images`, `skills[]` to `skills`)
+            const tagsOfElementInMultiple = ['select'];
+            const key = (type === 'file' || tagsOfElementInMultiple.includes(lcTagName)) ? name.replace(/\[\]/g, '') : name;
             window.lcsForm.data[key] = value;
         }
     });
@@ -183,6 +209,9 @@ document.addEventListener("submit", (event) => {
             console.warn(`Callback function "${callbackName}" is not defined or not a function.`);
         }
     }
+
+    // STEP 6: Trigger custom actions or hooks after form submission
+    hooks.doAction('lcsFormSubmitted', formTarget);
 });
 
 /**

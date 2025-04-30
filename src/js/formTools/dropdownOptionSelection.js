@@ -55,9 +55,9 @@ export function generateDropdownOptions(config = {}) {
     
     const wrapperAttrs = finalConfig.attributes || {};
     if (Object.keys(wrapperAttrs).includes('class')) {
-        wrapperAttrs.class = '_form_group ' + wrapperAttrs.class;
+        wrapperAttrs.class = '_form_group _dropdown_options_selection ' + wrapperAttrs.class;
     } else {
-        wrapperAttrs.class = '_form_group';
+        wrapperAttrs.class = '_form_group _dropdown_options_selection';
     }
     wrapperAttrs['data-dropdown_id'] = dropdownID;
 
@@ -116,73 +116,72 @@ function generateAttributes(attributes) {
 /**
  * Dropdown behavior for custom dropdowns.
  */
-document.addEventListener("DOMContentLoaded", () => {
-    document.addEventListener("click", (e) => {
-        const placeholder = e.target.closest("._dropdown_options_placeholder");
-        const option = e.target.closest("._dropdown_option");
+document.addEventListener("click", (event) => {
+    const dropdownOptionsArea = event.target.closest('.lcsForm ._dropdown_options_selection');
+    if (!dropdownOptionsArea) return;
 
-        if (placeholder) {
-            const dropdownGroup = placeholder.closest("._form_group");
-            dropdownGroup.classList.toggle("_active");
-            const icon = placeholder.querySelector("i");
-            if (icon) {
-                icon.classList.toggle("fa-chevron-down");
-                icon.classList.toggle("fa-chevron-up");
-            }
-            return;
+    const placeholder = event.target.closest("._dropdown_options_placeholder");
+    const option = event.target.closest("._dropdown_option");
+
+    if (placeholder) {
+        dropdownOptionsArea.classList.toggle("_active");
+        const icon = placeholder.querySelector("i");
+        if (icon) {
+            icon.classList.toggle("fa-chevron-down");
+            icon.classList.toggle("fa-chevron-up");
+        }
+        return;
+    }
+
+    if (option) {
+        const optionsContainer = option.closest("._dropdown_options");
+        const allOptions = optionsContainer.querySelectorAll("._dropdown_option");
+
+        const input = dropdownOptionsArea.querySelector("._dropdown_options_value");
+        const placeholderText = dropdownOptionsArea.querySelector("._dropdown_options_placeholder span");
+
+        allOptions.forEach(opt => opt.classList.remove("_selected"));
+        option.classList.add("_selected");
+
+        placeholderText.textContent = option.querySelector("._dropdown_option_label").textContent;
+        input.value = option.getAttribute("data-dropdown_option_value");
+
+        dropdownOptionsArea.classList.remove("_active");
+        const icon = dropdownOptionsArea.querySelector("._dropdown_options_placeholder i");
+        if (icon) {
+            icon.classList.add("fa-chevron-down");
+            icon.classList.remove("fa-chevron-up");
         }
 
-        if (option) {
-            const optionsContainer = option.closest("._dropdown_options");
-            const allOptions = optionsContainer.querySelectorAll("._dropdown_option");
-            const dropdownGroup = option.closest("._form_group");
+        const dropdownID = dropdownOptionsArea.getAttribute('data-dropdown_id');
+        const dropdownData = window.lcsDropdownOptions[dropdownID];
+        if (dropdownData && typeof dropdownData.selectCallback === 'function') {
+            const selectedValue = option.getAttribute("data-dropdown_option_value");
+            dropdownData.selectCallback(selectedValue, option, dropdownData.name);
+        }
 
-            const input = dropdownGroup.querySelector("._dropdown_options_value");
-            const placeholderText = dropdownGroup.querySelector("._dropdown_options_placeholder span");
+        return;
+    }
 
-            allOptions.forEach(opt => opt.classList.remove("_selected"));
-            option.classList.add("_selected");
-
-            placeholderText.textContent = option.querySelector("._dropdown_option_label").textContent;
-            input.value = option.getAttribute("data-dropdown_option_value");
-
-            dropdownGroup.classList.remove("_active");
-            const icon = dropdownGroup.querySelector("._dropdown_options_placeholder i");
+    const dropdownWrapper = event.target.closest("._dropdown_options_wrapper");
+    if (!dropdownWrapper) {
+        document.querySelectorAll("._form_group._active").forEach(group => {
+            group.classList.remove("_active");
+            const icon = group.querySelector("._dropdown_options_placeholder i");
             if (icon) {
                 icon.classList.add("fa-chevron-down");
                 icon.classList.remove("fa-chevron-up");
             }
-
-            const dropdownID = dropdownGroup.getAttribute('data-dropdown_id');
-            const dropdownData = window.lcsDropdownOptions[dropdownID];
-            if (dropdownData && typeof dropdownData.selectCallback === 'function') {
-                const selectedValue = option.getAttribute("data-dropdown_option_value");
-                dropdownData.selectCallback(selectedValue, option, dropdownData.name);
-            }
-
-            return;
-        }
-
-        const dropdownWrapper = e.target.closest("._dropdown_options_wrapper");
-        if (!dropdownWrapper) {
-            document.querySelectorAll("._form_group._active").forEach(group => {
-                group.classList.remove("_active");
-                const icon = group.querySelector("._dropdown_options_placeholder i");
-                if (icon) {
-                    icon.classList.add("fa-chevron-down");
-                    icon.classList.remove("fa-chevron-up");
-                }
-            });
-        }
-    });
+        });
+    }
 });
 
 /**
  * Dropdown search filtering logic.
  */
 document.addEventListener("DOMContentLoaded", () => {
-    document.addEventListener("input", (e) => {
-        const searchInput = e.target;
+    document.addEventListener("input", (event) => {
+        const searchInput = event.target;
         if (!searchInput.closest("._dropdown_options_wrapper") || searchInput.type !== "search") return;
 
         const wrapper = searchInput.closest("._dropdown_options_wrapper");

@@ -72,7 +72,7 @@ export function generatePillOptions(data = {}) {
 
     // Container attributes
     const wrapperAttrs = {
-        class: `_form_group lcsPillOptionsSelection ${config.attributes.class || ''}`.trim(),
+        class: `_form_group _pill_options_selection ${config.attributes.class || ''}`.trim(),
         'data-odt_id': optionDataTrackingID,
         ...config.attributes
     };
@@ -116,7 +116,7 @@ export function generatePillOptions(data = {}) {
 
     output += `
             </div>
-            <input type="hidden" name="${config.name}" value="${JSON.stringify(window.lcsPillOptions[optionDataTrackingID].values)}">
+            <input type="hidden" class="_pill_options_value" name="${config.name}" value="${JSON.stringify(window.lcsPillOptions[optionDataTrackingID].values)}">
         </div>
     </div>`;
 
@@ -159,7 +159,7 @@ function generateAttributes(attributes) {
  *
  * @example
  * <!-- Example HTML structure -->
- * <div class="lcsPillOptionsSelection" data-odt_id="uniqueID">
+ * <div class="_pill_options_selection" data-odt_id="uniqueID">
  *   <div class="_pill_options" data-pill_options_name="favoriteColor">
  *     <button type="button" class="_pill_option" data-pill_option_value="red">Red</button>
  *     <button type="button" class="_pill_option" data-pill_option_value="blue">Blue</button>
@@ -173,7 +173,7 @@ function generateAttributes(attributes) {
  * // - The selection state is stored in `window.lcsPillOptions`.
  */
 document.addEventListener('click', (event) => {
-    const pillOptionsArea = event.target.closest('.lcsPillOptionsSelection');
+    const pillOptionsArea = event.target.closest('.lcsForm ._pill_options_selection');
     if (!pillOptionsArea) return;
 
     const pillOption = event.target.closest('._pill_option');

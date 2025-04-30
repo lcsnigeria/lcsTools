@@ -224,17 +224,17 @@ let executionCount = 0;
 /**
  * Executes a series of hooks for AJAX requests at regular intervals.
  * 
- * This function triggers the `lcs_ajax_request` action hook every 500 milliseconds,
+ * This function triggers the `lcsAjaxRequest` action hook every 500 milliseconds,
  * up to a maximum of three executions. After the third execution, the interval is cleared.
  * 
  * @function doAjaxRequestHooks
  * @example
- * // Ensure you have a hook listener for 'lcs_ajax_request' before calling this function.
+ * // Ensure you have a hook listener for 'lcsAjaxRequest' before calling this function.
  * doAjaxRequestHooks();
  */
 function doAjaxRequestHooks() {
     const intervalDef = setInterval(() => {
-        hooks.doAction('lcs_ajax_request');
+        hooks.doAction('lcsAjaxRequest');
         executionCount++;
         if (executionCount >= 3) {
             clearInterval(intervalDef);

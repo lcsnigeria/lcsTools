@@ -1,0 +1,20 @@
+/* CHOICES LIBS */
+.choices {
+    margin: 0;
+}
+.choices[data-type*=select-one] .choices__inner, .choices__inner {
+    padding: 14px 10px;
+    border-radius: 4px;
+}
+.choices__item--choice.is-highlighted {
+    background-color: #f0f0f0; /* Light gray hover background */
+    color: #333; /* Darker text color */
+}
+.choices__list--single,
+.choices__input {
+    padding: 0;
+    margin: 0;
+}
+.choices__placeholder {
+    font-size: 1rem;
+}

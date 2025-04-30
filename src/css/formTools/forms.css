@@ -1,0 +1,208 @@
+/* FORMS */
+/* input/textarea */
+.lcsForm input[type="text"],
+.lcsForm input[type="password"],
+.lcsForm input[type="email"],
+.lcsForm input[type="number"],
+.lcsForm input[type="date"],
+.lcsForm textarea {
+    color: var(--formInputColor);
+    padding: 14px 10px;
+    border-radius: 4px;
+    font-size: 16px;
+    outline: var(--formInputOutline);
+    border: var(--formInputBorder);
+    background-color: var(--formInputBG);
+}
+.lcsForm input[type="text"]:focus,
+.lcsForm input[type="password"]:focus,
+.lcsForm input[type="email"]:focus,
+.lcsForm input[type="number"]:focus,
+.lcsForm input[type="date"]:focus,
+.lcsForm textarea:focus {
+    border: 1px solid var(--textColor);
+    outline: 1px solid var(--textColor);
+    background-color: transparent;
+}
+.lcsForm textarea {
+    min-width: 100%;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100px;
+}
+.lcsForm ._form_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.lcsForm ._form_desc {
+    color: var(--formDescColor);
+    margin: 10px 0;
+}
+.lcsForm ._form_note, small {
+    color: var(--formDescColor);
+    font-size: 14px;
+}
+.lcsForm ._form_input_wrapper {
+    position: relative;
+}
+.lcsForm ._form_password_wrapper {
+    position: relative;
+}
+.lcsForm ._form_password_wrapper > input {
+    width: 100%;
+}
+.lcsForm ._form_password_wrapper ._show_hide_password {
+    position: absolute;
+    right: 1rem;
+    cursor: pointer;
+    color: var(--primaryColor);
+    font-size: 15px;
+    font-weight: 500;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: transparent;
+    border: unset;
+}
+.lcsForm ._form_group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 1rem 0;
+}
+.lcsForm ._form_group label {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--formLabelColor);
+}
+/* radio */
+.lcsForm ._radio_options {
+    display: flex;
+    gap: 1rem;
+}
+.lcsForm ._radio_option {
+    display: flex;
+    border: 1px solid var(--radioOptionBorder);
+    padding: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.lcsForm ._radio_option._selected {
+    border: 2px solid var(--radioOptionSelectedBorder);
+}
+.lcsForm ._radio_option_label {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.lcsForm ._radio_option_label > i {
+    font-size: 30px;
+}
+.lcsForm ._radio_option_label > span {
+    font-size: 20px;
+}
+.lcsForm ._radio_option_toggle > span {
+    display: inline-block;
+    height: 25px;
+    width: 25px;
+    min-width: 25px;
+    border: 1px solid var(--radioOptionBorder);
+    border-radius: 50%;
+    position: relative;
+}
+.lcsForm ._radio_option._selected ._radio_option_toggle > span {
+    border-width: 2px;
+}
+.lcsForm ._radio_option._selected ._radio_option_toggle > span::after {
+    content: '';
+    display: inline-block;
+    height: 12px;
+    width: 12px;
+    min-width: 12px;
+    background-color: var(--radioOptionBG);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+}
+/* selected skills list */
+.lcsForm ul._selectedSkillList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    list-style: none;
+}
+.lcsForm ul._selectedSkillList li {
+    display: flex;
+    gap: 10px;
+    background-color: #f0f0f099;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #99999999;
+}
+.lcsForm ul._selectedSkillList li span {
+    font-size: 14px;
+}
+.lcsForm ul._selectedSkillList li button {
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+}
+/* pill options */
+.lcsForm ._form_group.lcsPillOptionsSelection {
+    margin: 1rem 0;
+}
+/* countries selection */
+.lcsForm .lcsCountrySelection ._dropdown_wrapper {
+    max-width: unset;
+}
+/* errors */
+.lcsForm ._error,
+.lcsForm ._required_field_error {
+    font-size: 14px;
+    color: var(--errorTextColor);
+}
+.lcsForm input._input_error,
+.lcsForm input._input_error:focus {
+    border: var(--formInputErrorBorder);
+    outline: var(--formInputErrorOutline);
+}
+/* submit */
+.lcsForm ._submit {
+    height: 45px;
+    width: 100%;
+    display: flex;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--formSubmitBG);
+    color: var(--formSubmitText);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+}
+.lcsForm ._submit:hover {
+    opacity: .9;
+}
+
+/* INPUT VALIDATION */
+._input_length_count {
+    font-size: 0.85rem;
+    color: var(--formDescColor);
+    margin-top: 4px;
+}
+._input_max_reached {
+    border-color: #cccccc99;
+    background-color: #fff0f099;
+    opacity: .5;
+}
+._input_max_exceeded {
+    border-color: #dc3545;
+    background-color: #fff0f0;
+}

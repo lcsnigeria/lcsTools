@@ -195,3 +195,52 @@ export function isLetters(str) {
     if (typeof str !== 'string') return false;
     return /^[A-Za-z]+$/.test(str);
 }
+
+/**
+ * Removes a specified character from a string.
+ * If a `position` (based on the character’s occurrence index) is provided, only the N-th
+ * occurrence of the character is removed. Otherwise, all occurrences are removed.
+ *
+ * @function
+ * @param {string} character - The character to remove.
+ * @param {string} string - The string from which to remove the character.
+ * @param {number} [position] - Optional zero-based index of the character’s occurrence to remove.
+ * If not specified, all instances of the character will be removed.
+ * @returns {string} The modified string with the character removed.
+ *
+ * @example
+ * stripCharacter('-', '12-34-56'); // "123456" — removes all hyphens
+ *
+ * @example
+ * stripCharacter('-', '12-34-56', 1); // "12-3456" — removes the 2nd hyphen only (occurrence index 1)
+ *
+ * @example
+ * stripCharacter(':', '10:20:30:40', 2); // "10:20:3040" — removes the 3rd colon
+ *
+ * @example
+ * stripCharacter('x', 'abxcxdx', 5); // "abxcxdx" — nothing removed, as 'x' doesn’t occur 6 times
+ */
+export function stripCharacter(character, string, position) {
+    const escapeRegExp = (str) => {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    if (typeof position === 'number') {
+        let count = 0;
+        let chars = string.split('');
+        for (let i = 0; i < chars.length; i++) {
+            if (chars[i] === character) {
+                if (count === position) {
+                    chars[i] = ''; // Remove the N-th occurrence
+                    break;
+                }
+                count++;
+            }
+        }
+        return chars.join('');
+    } else {
+        const escapedCharacter = escapeRegExp(character);
+        const regex = new RegExp(escapedCharacter, 'g');
+        return string.replace(regex, '');
+    }
+}
