@@ -1,0 +1,204 @@
+/* CSS Variables for Customization */
+:root {
+    --preview-border-radius: 8px;
+    --preview-padding: 10px;
+    --preview-margin: 10px;
+    --preview-bg: #ffffff;
+    --preview-border: 1px solid #e0e0e0;
+    --preview-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --preview-hover-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    --interactive-bg: #f5f5f5;
+    --expand-btn-bg: rgba(0, 0, 0, 0.6);
+    --expand-btn-color: #ffffff;
+    --expand-btn-size: 36px;
+    --text-color: #333333;
+    --error-bg: #ffe6e6;
+    --focus-outline: 2px solid #007bff;
+}
+
+/* Container for all previews */
+._file_preview_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--preview-margin);
+    padding: var(--preview-padding);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Base styles for all preview wrappers */
+._file_preview {
+    position: relative;
+    background: var(--preview-bg);
+    border: var(--preview-border);
+    border-radius: var(--preview-border-radius);
+    box-shadow: var(--preview-shadow);
+    padding: var(--preview-padding);
+    margin: var(--preview-margin);
+    max-width: 300px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+._file_preview:hover {
+    box-shadow: var(--preview-hover-shadow);
+    transform: translateY(-2px);
+}
+
+/* Focus styles for accessibility */
+._file_preview:focus-within {
+    outline: var(--focus-outline);
+}
+
+/* Media Previews (Images, Videos, Audio) */
+._media_file_preview {
+    overflow: hidden;
+}
+
+._image_preview img {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: var(--preview-border-radius);
+}
+
+._video_preview video {
+    width: 100%;
+    max-height: 200px;
+    border-radius: var(--preview-border-radius);
+}
+
+._audio_preview audio {
+    width: 100%;
+    margin-top: var(--preview-padding);
+}
+
+/* Expand Button for Images and Videos */
+._will_expand ._expand_container {
+    position: absolute;
+    top: var(--preview-padding);
+    right: var(--preview-padding);
+    width: var(--expand-btn-size);
+    height: var(--expand-btn-size);
+    background: var(--expand-btn-bg);
+    color: var(--expand-btn-color);
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+._will_expand ._expand_container:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+._will_expand ._expand_container:focus {
+    outline: var(--focus-outline);
+}
+
+._will_expand ._expand_container i {
+    font-size: 18px;
+}
+
+/* PDF Preview */
+._pdf_preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+._pdf_preview canvas {
+    width: 100%;
+    max-height: 200px;
+    border-radius: var(--preview-border-radius);
+}
+
+._pdf_preview._is_interactive {
+    background: var(--interactive-bg);
+    cursor: pointer;
+}
+
+._pdf_preview._is_interactive:hover {
+    background: darken(var(--interactive-bg), 5%);
+}
+
+/* DOCX Preview */
+._doc_preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+._doc_preview > * {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+._doc_preview._is_interactive {
+    background: var(--interactive-bg);
+    cursor: pointer;
+}
+
+._doc_preview._is_interactive:hover {
+    background: darken(var(--interactive-bg), 5%);
+}
+
+/* Text Preview */
+._text_preview {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+._text_preview._is_editable {
+    background: var(--interactive-bg);
+    cursor: text;
+}
+
+._text_preview._is_editable:hover {
+    background: darken(var(--interactive-bg), 5%);
+}
+
+/* Unknown File Preview */
+._unknown_file_preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 100px;
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+._unknown_file_preview span {
+    padding: var(--preview-padding);
+    word-break: break-all;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    ._file_preview {
+        max-width: 100%;
+    }
+
+    ._file_preview_container {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Error State (e.g., failed preview) */
+._file_preview.error {
+    border-color: #ff4d4d;
+    background: var(--error-bg);
+}

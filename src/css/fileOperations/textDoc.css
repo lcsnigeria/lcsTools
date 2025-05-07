@@ -1,0 +1,16 @@
+._text_doc_pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+._text_doc_textarea {
+    width: 100%;
+    height: 300px;
+    font-family: monospace;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    padding: 10px;
+}

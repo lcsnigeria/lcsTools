@@ -167,6 +167,27 @@ export function isEmail(str) {
 }
 
 /**
+ * Validates whether a string is a properly formed URL.
+ *
+ * @param {string} str - The string to validate.
+ * @returns {boolean} True if the string is a valid URL, otherwise false.
+ *
+ * @example
+ * isURL("https://example.com");         // true
+ * isURL("ftp://example.com/file.txt");  // true
+ * isURL("not-a-url");                   // false
+ */
+export function isURL(str) {
+    if (typeof str !== 'string') return false;
+    try {
+        new URL(str);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Checks if a string contains only alphabetic characters (A–Z, a–z).
  *
  * @param {string} str - The string to test.

@@ -129,7 +129,7 @@ class lcsHooks {
 /**
  * A singleton instance of lcsHooks for easy use throughout the application.
  *
- * @module lcsHooksInstance
+ * @module hooks
  */
 export const hooks = new lcsHooks();
 export default lcsHooks;

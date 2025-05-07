@@ -19,6 +19,18 @@ export * from './js/alertsAndLogs/alerts.js';
 // Request
 export * from './js/requests/ajaxRequest.js';
 
+// File Oprations
+export * from './js/fileOperations/file.js';
+export * from './js/fileOperations/image.js';
+export * from './js/fileOperations/video.js';
+export * from './js/fileOperations/audio.js';
+export * from './js/fileOperations/pdf.js';
+export * from './js/fileOperations/docx.js';
+export * from './js/fileOperations/textDoc.js';
+export * from './js/fileOperations/csv.js';
+export * from './js/fileOperations/fileSelection.js';
+export * from './js/fileOperations/fileOperationsComponents.js';
+
 // Forms
 export * from './js/formTools/formSubmission.js';
 export * from './js/formTools/OTPField.js';

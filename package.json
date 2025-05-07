@@ -76,5 +76,8 @@
     "commitUrlFormat": "https://github.com/lcsnigeria/lcs_tools/commit/{{hash}}",
     "compareUrlFormat": "https://github.com/lcsnigeria/lcs_tools/compare/{{previousTag}}...{{currentTag}}",
     "issueUrlFormat": "https://github.com/lcsnigeria/lcs_tools/issues/{{id}}"
+  },
+  "dependencies": {
+    "mammoth": "^1.9.0"
   }
 }

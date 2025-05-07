@@ -83,3 +83,45 @@ export function isDataObject(data) {
 export function isDataNumeric(data) {
     return typeof data === 'number';
 }
+
+/**
+ * Checks if the given data is considered "empty".
+ *
+ * Returns `true` for:
+ * - `false`, `0`, `null`, `undefined`, `''` (empty string)
+ * - Strings containing only whitespace: `'   '`, `'    '`
+ * - Falsy-like strings: `'false'`, `'null'`, `'undefined'`, `'0'`
+ *
+ * @param {*} data - The data to evaluate.
+ * @returns {boolean} - True if the data is considered empty, false otherwise.
+ *
+ * @example
+ * isDataEmpty(false);        // → true
+ * isDataEmpty('');           // → true
+ * isDataEmpty('   ');        // → true
+ * isDataEmpty('null');       // → true
+ * isDataEmpty(0);            // → true
+ * isDataEmpty('some text');  // → false
+ * isDataEmpty([1, 2]);       // → false
+ */
+export function isDataEmpty(data) {
+    // Handle falsy primitives directly
+    if (!data && data !== 0) return true;
+
+    // Special handling for strings
+    if (typeof data === 'string') {
+        const trimmed = data.trim().toLowerCase();
+        return (
+            trimmed === '' ||
+            trimmed === 'false' ||
+            trimmed === 'null' ||
+            trimmed === 'undefined' ||
+            trimmed === '0'
+        );
+    }
+
+    // Handle numeric 0 separately to ensure it's considered empty
+    if (typeof data === 'number' && data === 0) return true;
+
+    return false;
+}
