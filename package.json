@@ -1,6 +1,6 @@
 {
   "name": "lcs_tools",
-  "version": "0.0.43",
+  "version": "0.0.44",
   "description": "A modular JavaScript utility library designed for scalable, efficient web development.",
   "main": "dist/lt.min.js",
   "files": [

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.44](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.43...v0.0.44) (2025-05-07)
+
+
+### Features
+
+* **forms:** Enhance form submission handling and validation ([eb03ad1](https://github.com/lcsnigeria/lcs_tools/commit/eb03ad1e71597f8f8d0e9a918d3b04dc96d3d483))
+* Implement file operational features ([fcbfde0](https://github.com/lcsnigeria/lcs_tools/commit/fcbfde00dcf85877618bb6d3a0f3c13524f7cf73))
+
 ### [0.0.43](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.42...v0.0.43) (2025-04-30)
 
 ### [0.0.42](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.41...v0.0.42) (2025-04-30)
