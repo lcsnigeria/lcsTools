@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.59](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.58...v0.0.59) (2025-05-11)
+
 ### [0.0.58](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.57...v0.0.58) (2025-05-09)
 
 ### [0.0.57](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.56...v0.0.57) (2025-05-09)
