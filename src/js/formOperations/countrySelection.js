@@ -1,6 +1,3 @@
-// Importing the CSS file for styling the country selection tool
-import '../../css/formTools/countrySelection.css';
-
 // Importing utility functions for string manipulation and code generation
 import { capitalizeWords } from '../workingTools/stringOps.js';
 import { filterArraySimilarItems } from '../workingTools/arrayOps.js';

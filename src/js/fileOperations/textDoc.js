@@ -1,5 +1,4 @@
-import '../../css/fileOperations/textDoc.css';
-import { isDataEmpty } from "../workingTools/dataTypes";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
 
 /**
  * A class for loading and rendering text-based files.
@@ -93,40 +92,53 @@ class lcsLoadTextDoc {
         container.innerHTML = '';
         if (editable) {
             const textarea = document.createElement('textarea');
-            textarea.className = '_text_doc_textarea';
+            textarea.className = '_text_doc _text_doc_textarea';
             textarea.value = this.#text;
             container.appendChild(textarea);
             return textarea;
         } else {
             const pre = document.createElement('pre');
-            pre.className = '_text_doc_pre';
+            pre.className = '_text_doc _text_doc_pre';
             pre.textContent = this.#text;
             container.appendChild(pre);
             return pre;
         }
     }
 
-    /**
-     * Ensures that the Monaco Editor is loaded.
-     * @private
-     */
     async #ensureMonaco() {
-        if (window.monaco) {
+        if (window.monaco && window.monaco.editor) {
             return;
         }
+    
+        // Load AMD loader
         await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js';
-            script.onload = () => {
-                require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs' } });
-                require(['vs/editor/editor.main'], () => {
-                    resolve();
-                });
-            };
-            script.onerror = () => reject(new Error('Failed to load Monaco Editor'));
-            document.head.appendChild(script);
+            if (window.require) return resolve(); // Already loaded
+    
+            const loaderScript = document.createElement('script');
+            loaderScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js';
+            loaderScript.onload = resolve;
+            loaderScript.onerror = () => reject(new Error('Failed to load Monaco loader script'));
+            document.head.appendChild(loaderScript);
         });
-    }
+    
+        // Configure require
+        window.require.config({
+            paths: {
+                vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs'
+            }
+        });
+    
+        // Load Monaco editor main module
+        await new Promise((resolve, reject) => {
+            window.require(['vs/editor/editor.main'], () => {
+                if (window.monaco && window.monaco.editor) {
+                    resolve();
+                } else {
+                    reject(new Error('Monaco failed to initialize.'));
+                }
+            });
+        });
+    }    
 
     /**
      * Gets the file extension from the file name.
@@ -199,7 +211,14 @@ class lcsLoadTextDoc {
             fontSize: 14,
             ...options
         };
-        const editor = monaco.editor.create(container, editorOptions);
+
+        // Create container for monaco
+        const monacoContainer = document.createElement('div');
+        monacoContainer.classList.add('_text_doc', '_text_doc_monaco_editor');
+
+        const editor = monaco.editor.create(monacoContainer, editorOptions);
+
+        container.appendChild(monacoContainer);
         return editor;
     }
 

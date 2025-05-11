@@ -1,4 +1,3 @@
-
 /**
  * A comprehensive list of file extensions categorized by their common usage.
  * This array serves as a reference for various file types, including documents,

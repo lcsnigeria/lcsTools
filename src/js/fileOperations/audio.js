@@ -1,4 +1,4 @@
-import { isDataEmpty } from "../workingTools/dataTypes";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
 
 /**
  * A utility class for loading and retrieving metadata from audio files.

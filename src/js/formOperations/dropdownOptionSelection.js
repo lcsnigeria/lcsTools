@@ -1,5 +1,3 @@
-// Importing the CSS file for styling the dropdown selection
-import '../../css/formTools/dropdownOptionSelection.css';
 import { generateCodes } from '../workingTools/credsAndCodes.js';
 
 // Initialize global storage

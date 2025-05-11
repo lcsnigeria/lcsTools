@@ -1,8 +1,15 @@
-// CSS Themes
-export * from './css/themesVars/primaryTheme.css';
+/**
+ * Import initializations
+ */
+import './js/initializations/initIndex.js';
+
+/**
+ * Import export file that loads the necessary css files
+ */
+export * from './js/initializations/loadCSS.js';
 
 // Hooks
-export { hooks } from './js/hooks.js';
+export * from './js/hooks.js';
 
 // Storage
 export * from './js/dataStorage/localDatabase.js';
@@ -32,16 +39,17 @@ export * from './js/fileOperations/fileSelection.js';
 export * from './js/fileOperations/fileOperationsComponents.js';
 
 // Forms
-export * from './js/formTools/formSubmission.js';
-export * from './js/formTools/OTPField.js';
-export * from './js/formTools/radioOptionSelection.js';
-export * from './js/formTools/passwordAndTools.js';
-export * from './js/formTools/inputValidation.js';
-export * from './js/formTools/countrySelection.js';
-export * from './js/formTools/dropdownOptionSelection.js';
-export * from './js/formTools/pillOptionSelection.js';
-export * from './js/formTools/externalFormLibs.js';
+export * from './js/formOperations/formSubmission.js';
+export * from './js/formOperations/OTPField.js';
+export * from './js/formOperations/radioOptionSelection.js';
+export * from './js/formOperations/passwordAndTools.js';
+export * from './js/formOperations/inputValidation.js';
+export * from './js/formOperations/countrySelection.js';
+export * from './js/formOperations/dropdownOptionSelection.js';
+export * from './js/formOperations/pillOptionSelection.js';
+export * from './js/formOperations/externalFormLibs.js';
 
 // UI/Element Manipulation
 export * from './js/uiAndElementManipulation/elementScrolling.js';
 export * from './js/uiAndElementManipulation/closeContainerElement.js';
+export * from './js/uiAndElementManipulation/horizontalScrolling.js';

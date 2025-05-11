@@ -1,6 +1,6 @@
-import { isDataEmpty } from "../workingTools/dataTypes";
-import { isURL } from "../workingTools/stringOps";
-import { allFileExtensions, allFileMimeTypes, textFileExtensions } from "./fileOperationsComponents";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
+import { isURL } from "../workingTools/stringOps.js";
+import { allFileExtensions, allFileMimeTypes, textFileExtensions } from "./fileOperationsComponents.js";
 
 /**
  * An object that maps file extensions to their corresponding MIME types.

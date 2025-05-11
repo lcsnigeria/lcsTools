@@ -1,82 +1,102 @@
-// Only include the Node-specific code if running in a Node environment
-let mammoth, fs;
-if (typeof window === "undefined") {
-    mammoth = require('mammoth');
-    fs = require('fs').promises;
-}
-
 /**
- * Supported input formats for conversion
- * @type {Object}
- */
-const SUPPORTED_FORMATS = {
-    DOC: '.doc',
-    DOCX: '.docx',
-    RTF: '.rtf',
-    ODT: '.odt'
-};
-
-const mammothCDN = "https://unpkg.com/mammoth/mammoth.browser.min.js";
-
-/**
- * lcsLoadDOCX - A cross-environment utility for loading and rendering .docx documents.
- * Supports browser-based viewing and server-side conversions.
+ * A utility class for loading and rendering .docx documents in the browser.
+ * Uses Mammoth.js to convert .docx files to HTML for display.
+ * Supports browser-based rendering and HTML extraction with a singleton instance for global use.
+ * 
+ * @class
  */
 class lcsLoadDOCX {
-    #file;
+    /** @private {File|null} The .docx file to process */
+    #file = null;
+    /** @private {string|null} The converted HTML content */
     #html = null;
+    /** @private {boolean} Whether the file has been loaded and converted */
     #loaded = false;
+    /** @private {boolean} Whether Mammoth.js has been loaded */
+    #mammothLoaded = false;
+    /** @private {string} CDN URL for Mammoth.js */
+    static #MAMMOTH_CDN = 'https://unpkg.com/mammoth/mammoth.browser.min.js';
 
     /**
-     * Initialize with optional File object (browser only).
-     * @param {File|null} file 
+     * Initializes the instance with an optional .docx File object.
+     * 
+     * @param {File|null} [file=null] - The .docx file to load (browser only).
+     * @throws {Error} If the file is provided but invalid.
+     * @example
+     * const docxLoader = new lcsLoadDOCX(new File([''], 'example.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
      */
     constructor(file = null) {
         if (file) this.setFile(file);
     }
 
     /**
-     * Assign a .docx File object (browser only).
-     * @param {File} file 
+     * Assigns a .docx File object for processing.
+     * 
+     * @param {File} file - The .docx file to load.
+     * @throws {Error} If the file is not a valid File object or not a .docx file.
+     * @example
+     * const file = new File([''], 'example.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+     * docxLoader.setFile(file);
      */
     setFile(file) {
         if (!(file instanceof File)) {
-            throw new Error("Expected a File object (browser environment only).");
+            throw new Error('Expected a valid File object.');
+        }
+        if (!file.name.toLowerCase().endsWith('.docx') && !['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
+            throw new Error('File must be a .docx document.');
         }
         this.#file = file;
         this.#loaded = false;
+        this.#html = null;
     }
 
     /**
-     * Ensures the mammoth.js library is loaded in the browser.
+     * Loads the Mammoth.js library in the browser if not already loaded.
+     * 
      * @private
+     * @returns {Promise<void>}
+     * @throws {Error} If the script fails to load.
      */
-    async #ensureMammothJS() {
-        if (typeof window === "undefined") return;
+    async #loadMammothJS() {
+        if (typeof window === 'undefined') {
+            throw new Error('Mammoth.js loading is only supported in the browser.');
+        }
+        if (this.#mammothLoaded || window.mammoth) {
+            this.#mammothLoaded = true;
+            return;
+        }
 
-        if (!window.mammoth) {
-            const existingScript = document.querySelector(`script[src="${mammothCDN}"]`);
-            if (!existingScript) {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement("script");
-                    script.src = mammothCDN;
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
+        const existingScript = document.querySelector(`script[src="${lcsLoadDOCX.#MAMMOTH_CDN}"]`);
+        if (!existingScript) {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = lcsLoadDOCX.#MAMMOTH_CDN;
+                script.onload = () => {
+                    this.#mammothLoaded = true;
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('Failed to load Mammoth.js from CDN.'));
+                document.head.appendChild(script);
+            });
+        } else {
+            this.#mammothLoaded = true;
         }
     }
 
     /**
-     * Internal initializer that loads and converts the file to HTML.
+     * Initializes the instance by loading and converting the .docx file to HTML.
+     * 
      * @private
+     * @returns {Promise<void>}
+     * @throws {Error} If no file is set or conversion fails.
      */
-    async #init() {
+    async #initialize() {
         if (this.#loaded) return;
+        if (!this.#file) {
+            throw new Error('No .docx file set. Call setFile() first.');
+        }
 
-        await this.#ensureMammothJS();
-
+        await this.#loadMammothJS();
         const buffer = await this.#file.arrayBuffer();
         const result = await window.mammoth.convertToHtml({ arrayBuffer: buffer });
         this.#html = result.value;
@@ -84,71 +104,64 @@ class lcsLoadDOCX {
     }
 
     /**
-     * Renders the DOCX HTML content into a given container (browser only).
-     * @param {HTMLElement} container 
+     * Renders the .docx content as HTML into a specified container.
+     * 
+     * @param {HTMLElement} container - The HTML element to render the content into.
+     * @returns {Promise<void>}
+     * @throws {Error} If called outside the browser, the container is invalid, or initialization fails.
+     * @example
+     * const container = document.querySelector('#docx-preview');
+     * await docxLoader.renderDOCX(container);
      */
     async renderDOCX(container) {
-        if (typeof window === "undefined") {
-            throw new Error("renderDOCX() can only be used in the browser.");
+        if (typeof window === 'undefined') {
+            throw new Error('renderDOCX is only available in the browser.');
         }
         if (!(container instanceof HTMLElement)) {
-            throw new Error("Container must be a valid HTMLElement.");
+            throw new Error('Container must be a valid HTMLElement.');
         }
 
-        await this.#init();
-        container.innerHTML = this.#html;
+        await this.#initialize();
+        // Sanitize HTML to prevent XSS
+        const div = document.createElement('div');
+        div.className = '_docx';
+        div.textContent = this.#html; // Text content is safe
+        container.innerHTML = div.innerHTML;
     }
 
     /**
-     * Converts supported file types to DOCX (Node.js only).
-     * @param {string} inputPath - Path to the input file.
-     * @param {string} [outputPath] - Optional output path for the converted DOCX file.
-     * @returns {Promise<string>} Path to the saved DOCX file.
-     */
-    async convertToDocx(inputPath, outputPath) {
-        if (typeof window !== "undefined") {
-            throw new Error("convertToDocx() is only available in Node.js.");
-        }
-
-        try {
-            const ext = inputPath.toLowerCase().slice(inputPath.lastIndexOf('.'));
-            if (!Object.values(SUPPORTED_FORMATS).includes(ext)) {
-                throw new Error(`Unsupported input format: ${ext}`);
-            }
-
-            if (!outputPath) {
-                outputPath = inputPath.replace(/\.[^.]+$/, '.docx');
-            }
-
-            const buffer = await fs.readFile(inputPath);
-            const result = await mammoth.convertToHtml({ buffer });
-            const docxBuffer = await mammoth.convertHtmlToDocx(result.value);
-
-            await fs.writeFile(outputPath, docxBuffer);
-            return outputPath;
-        } catch (error) {
-            throw new Error(`Conversion failed: ${error.message}`);
-        }
-    }
-
-    /**
-     * Returns the extracted HTML string from the DOCX file (browser only).
-     * @returns {Promise<string>}
+     * Retrieves the HTML content extracted from the .docx file.
+     * 
+     * @returns {Promise<string>} The HTML string of the .docx content.
+     * @throws {Error} If called outside the browser or initialization fails.
+     * @example
+     * const html = await docxLoader.getHTML();
+     * console.log(html);
      */
     async getHTML() {
-        if (typeof window === "undefined") {
-            throw new Error("getHTML() is only available in the browser.");
+        if (typeof window === 'undefined') {
+            throw new Error('getHTML is only available in the browser.');
         }
-        await this.#init();
-        return this.#html;
+        await this.#initialize();
+        return this.#html || '';
     }
 }
 
 /**
- * A singleton instance for global DOCX loading usage in the browser.
- * Use this only when dealing with a single file at a time.
+ * A singleton instance of lcsLoadDOCX for global use in the browser.
+ * Suitable for handling a single .docx file at a time.
  * 
- * @module docx
+ * @type {lcsLoadDOCX}
+ * @example
+ * import { docx } from './lcsLoadDOCX.js';
+ * docx.setFile(new File([''], 'example.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+ * await docx.renderDOCX(document.querySelector('#docx-preview'));
  */
-export const docx = typeof window !== "undefined" ? new lcsLoadDOCX() : null;
+export const docx = new lcsLoadDOCX();
+
+/**
+ * The lcsLoadDOCX class for creating new instances.
+ * 
+ * @type {typeof lcsLoadDOCX}
+ */
 export default lcsLoadDOCX;

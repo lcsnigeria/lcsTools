@@ -1,18 +1,22 @@
-import '../../css/fileOperations/fileSelection.css';
+import { arrayDifference, filterObjectValuesByKeys } from "../workingTools/arrayOps.js";
+import { isDataArray, isDataEmpty, isDataString } from "../workingTools/dataTypes.js";
+import { audio } from "./audio.js";
+import { video } from "./video.js";
+import { image } from "./image.js";
+import { pdf } from "./pdf.js";
+import { docx } from "./docx.js";
+import { textDoc } from "./textDoc.js";
+import { generateCodes } from "../workingTools/credsAndCodes.js";
+import { file as fileOps } from "./file.js";
+import { alert as lcsAlert } from '../alertsAndLogs/alerts.js';
+import { initializeFontAwesome } from "../initializations/fontAwesome.js";
 
-import { arrayDifference, filterObjectValuesByKeys } from "../workingTools/arrayOps";
-import { isDataArray, isDataEmpty } from "../workingTools/dataTypes";
-import { lcsLoadAudio as audio } from "./audio";
-import { lcsLoadVideo as video } from "./video";
-import { lcsLoadImage as image } from "./image";
-import { lcsLoadPDF as pdf } from "./pdf";
-import { lcsLoadDocx as docx } from "./docx";
-import { lcsLoadTextDoc as textDoc } from "./textDoc";
-import { generateCodes } from "../workingTools/credsAndCodes";
-import { lcsFileOps as fileOps } from "./file";
-
-
-
+/**
+ * Load Font Awesome Icons
+ */
+( async () => {
+    await initializeFontAwesome()
+}) () ;
 
 
 /**
@@ -107,7 +111,7 @@ const validFileTypeData = {
     word: '.doc,.docx',               // Word documents
     excel: '.xls,.xlsx',              // Excel spreadsheets
     powerpoint: '.ppt,.pptx',         // PowerPoint presentations
-    text: '.txt,.md',                 // Text & Markdown files
+    txt: '.txt,.md',                 // Text & Markdown files
     archive: '.zip,.rar,.7z,.tar,.gz,.tar.gz', // Compressed files
     csv: '.csv',                      // CSV files
     json: '.json',                    // JSON files
@@ -188,51 +192,72 @@ const isDOCXFileType = (file) => {
 };
 
 
-
+const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
+    extOrTypes = Array.isArray(extOrTypes) ? extOrTypes : [extOrTypes];
+    extOrTypes.forEach(extt => {
+        if (fileOps.isExtensionTextDoc(extt)) {
+            return true;
+        }
+    });
+}
 
 
 /**
- * Initiates a file selection process, validates uploaded files, and generates previews.
- * 
- * This function creates or uses an HTML file input element to allow users to select files.
- * It supports validation for file types, sizes, and aspect ratios (for images and videos),
- * and generates previews for supported file types (media, PDFs, Word documents, text files).
- * Selected files are stored in a global `window.lcsFileSelection.files` object with unique
- * tracking IDs. The function is highly configurable via the `configs` object.
- * 
+ * Initiates a file selection process, validates uploaded files, and generates previews for selected files.
+ *
+ * This function enables users to select files via an HTML file input element, which is either created dynamically
+ * or reused from the provided control element. It supports extensive validation for file types, sizes, counts, and
+ * aspect ratios (for images and videos). Previews are generated for supported file types, including media (images,
+ * videos, audio), PDFs, Word documents, and text files. Selected files are stored in a global
+ * `window.lcsFileSelection.files` object, organized by input name with unique tracking IDs. The function is highly
+ * configurable to support various use cases, such as single or multiple file selection, custom file type restrictions,
+ * and interactive previews.
+ *
  * @async
- * @param {HTMLElement} elementInControl - The HTML element controlling the file input (e.g., a button or input element).
- * @param {Object} [configs={}] - Configuration options for file selection and validation.
- * @param {string} [configs.name='files'] - Name attribute for the file input element.
- * @param {boolean} [configs.selectLater=false] - If true, does not trigger the file input dialog immediately.
- * @param {boolean} [configs.multiple=false] - If true, allows multiple file selection.
- * @param {boolean} [configs.useCustomFileTypes=false] - If true, `fileTypes` is treated as a custom string (e.g., '.php,image/*').
- * @param {string[]|string} [configs.fileTypes=[]] - Array of valid file type categories (e.g., ['image', 'pdf']) or a custom string.
- * @param {string[]} [configs.imageAspectRatio=[]] - Array of allowed image aspect ratios (e.g., ['16:9', '4:3']).
- * @param {string[]} [configs.videoAspectRatio=[]] - Array of allowed video aspect ratios (e.g., ['16:9', '4:3']).
- * @param {Function|null} [configs.fileSelectedCallback=null] - Callback invoked with selected file data.
- * @param {Function|null} [configs.noFileSelectedCallback=null] - Callback invoked when no files are selected.
- * @param {boolean} [configs.filePreview=true] - If true, generates previews for selected files.
- * @param {string} [configs.filePreviewPosition='top'] - Position of the preview container ('top' or 'bottom').
- * @param {number} [configs.fileMaxSize=104857600] - Maximum size per file in bytes (default: 100MB).
- * @param {number} [configs.fileMinSize=0] - Minimum size per file in bytes.
- * @param {number} [configs.fileTotalMaxSize=1073741824] - Maximum total size for all files in bytes (default: 1GB).
- * @param {number} [configs.fileTotalMinSize=0] - Minimum total size for all files in bytes.
- * @param {boolean} [configs.playOnPreview=false] - If true, enables playback/interactivity for previews.
- * @throws {Error} If the provided element is invalid, configurations are incorrect, or file validations fail.
+ * @param {HTMLElement} elementInControl - The HTML element controlling the file input (e.g., a button or existing file input).
+ * @param {Object} [configs={}] - Configuration options for file selection, validation, and preview generation.
+ * @param {string} [configs.name='files'] - Name attribute for the file input element. Automatically adjusted to avoid conflicts.
+ * @param {boolean} [configs.multiple=false] - If true, allows multiple file selection; otherwise, restricts to a single file.
+ * @param {boolean} [configs.useCustomFileTypes=false] - If true, treats `fileTypes` as a custom string (e.g., '.php,image/*').
+ * @param {string[]|string} [configs.fileTypes=[]] - Array of valid file type categories (e.g., ['image', 'pdf']) or a custom string if `useCustomFileTypes` is true.
+ * @param {string|string[]} [configs.imageAspectRatio=[]] - Allowed image aspect ratios (e.g., '16:9', ['16:9', '4:3']).
+ * @param {string|string[]} [configs.videoAspectRatio=[]] - Allowed video aspect ratios (e.g., '16:9', ['16:9', '4:3']).
+ * @param {Function|null} [configs.fileSelectedCallback=null] - Callback invoked with an array of selected file data (or a single file object if `multiple` is false).
+ * @param {boolean} [configs.filePreview=true] - If true, generates previews for supported file types.
+ * @param {string} [configs.filePreviewPosition='top'] - Position of the preview container relative to the control element ('top' or 'bottom').
+ * @param {number} [configs.maxFileSize=104857600] - Maximum size per file in bytes (default: 100MB).
+ * @param {number} [configs.minFileSize=0] - Minimum size per file in bytes (default: 0).
+ * @param {number} [configs.totalMaxFileSize=1073741824] - Maximum total size for all selected files in bytes (default: 1GB).
+ * @param {number} [configs.totalMinFileSize=0] - Minimum total size for all selected files in bytes (default: 0).
+ * @param {number} [configs.maxFileCount=10] - Maximum number of files that can be selected (default: 10).
+ * @param {HTMLElement|string|null} [configs.fileChooserTriger=null] - Element or selector (e.g., '#id', '.class') to trigger the file input dialog.
+ * @param {boolean} [configs.playOnPreview=false] - If true, enables playback or interactivity for media previews.
+ * @param {boolean} [configs.required=false] - If true, marks the file input as required, enforcing selection.
+ * @throws {Error} If the control element is invalid, configurations are incorrect, file validations fail, or maximum file count is reached.
  * @example
- * selectFiles(document.querySelector('button'), {
+ * // Basic usage with a button
+ * selectFiles(document.querySelector('#uploadButton'), {
  *   multiple: true,
  *   fileTypes: ['image', 'pdf'],
- *   fileMaxSize: 10 * 1024 * 1024, // 10MB
- *   imageAspectRatio: ['16:9'],
- *   fileSelectedCallback: (files) => console.log('Selected:', files)
+ *   maxFileSize: 10 * 1024 * 1024, // 10MB
+ *   maxFileCount: 5,
+ *   fileSelectedCallback: (files) => console.log('Selected files:', files),
+ *   fileChooserTriger: '#uploadButton'
+ * });
+ *
+ * @example
+ * // Using custom file types and aspect ratio validation
+ * selectFiles(document.querySelector('input[type="file"]'), {
+ *   useCustomFileTypes: true,
+ *   fileTypes: 'image/jpeg,.png',
+ *   imageAspectRatio: '4:3',
+ *   filePreviewPosition: 'bottom',
+ *   required: true
  * });
  */
 export async function selectFiles(elementInControl, configs = {}) {
     const defaultConfigs = {
         name: 'files',
-        selectLater: false,
         multiple: false,
         useCustomFileTypes: false,
         fileTypes: [],
@@ -242,11 +267,14 @@ export async function selectFiles(elementInControl, configs = {}) {
         noFileSelectedCallback: null,
         filePreview: true,
         filePreviewPosition: 'top',
-        fileMaxSize: 1024 * 1024 * 100, // 100MB
-        fileMinSize: 0,
-        fileTotalMaxSize: 1024 * 1024 * 1000, // 1GB
-        fileTotalMinSize: 0,
+        maxFileSize: 1024 * 1024 * 100, // 100MB
+        minFileSize: 0,
+        totalMaxFileSize: 1024 * 1024 * 1000, // 1GB
+        totalMinFileSize: 0,
+        maxFileCount: 10,
+        fileChooserTriger: null,
         playOnPreview: false,
+        required: false
     };
 
     configs = { ...defaultConfigs, ...configs };
@@ -271,6 +299,8 @@ export async function selectFiles(elementInControl, configs = {}) {
     inputElement.classList.add('lcsFileSelection');
 
     // Configure input name
+    // Clear configs.name off posible square brackets 
+    // And set to the inputElement
     if (!inputElement.hasAttribute('name') || isDataEmpty(inputElement.getAttribute('name'))) {
         if (isDataEmpty(configs.name)) {
             throw new Error('Input name is required and cannot be empty.');
@@ -278,11 +308,12 @@ export async function selectFiles(elementInControl, configs = {}) {
     } else {
         configs.name = inputElement.getAttribute('name');
     }
+    configs.name = configs.name.replace(/\[\]/g, '');
     let nameSuffixCounter = 1;
     while (document.querySelector(`input.lcsFileSelection[name="${configs.name}"]`)) {
         configs.name = `${configs.name}_${nameSuffixCounter}`;
         nameSuffixCounter++;
-    }
+    } 
     inputElement.name = configs.name;
 
     // Configure multiple attribute
@@ -290,6 +321,11 @@ export async function selectFiles(elementInControl, configs = {}) {
         inputElement.setAttribute('multiple', '');
     } else {
         inputElement.removeAttribute('multiple');
+    }
+
+    // Configure required dataset
+    if (configs.required === true) {
+        inputElement.dataset.file_select_required = 'true';
     }
 
     // Validate and set file types
@@ -315,7 +351,7 @@ export async function selectFiles(elementInControl, configs = {}) {
     }
     const specifiedFileTypesArray = specifiedFileTypes.replace(/\./g, '').split(',').filter(Boolean);
 
-    // Validate aspect ratios
+    // Validate image aspect ratios
     configs.imageAspectRatio = Array.isArray(configs.imageAspectRatio)
         ? configs.imageAspectRatio
         : configs.imageAspectRatio
@@ -327,6 +363,7 @@ export async function selectFiles(elementInControl, configs = {}) {
         }
     });
 
+    // Validate video aspect ratios
     configs.videoAspectRatio = Array.isArray(configs.videoAspectRatio)
         ? configs.videoAspectRatio
         : configs.videoAspectRatio
@@ -340,12 +377,40 @@ export async function selectFiles(elementInControl, configs = {}) {
 
     // Initialize global file storage
     window.lcsFileSelection = window.lcsFileSelection || { files: {} };
-    window.lcsFileSelection.files[inputName] = window.lcsFileSelection.files[inputName] || {};
+    window.lcsFileSelection.files[configs.name] = window.lcsFileSelection.files[configs.name] || {};
+
+    // Function to check if user selected file before
+    const alreadySelectedFile = () => {
+        return !isDataEmpty(window.lcsFileSelection.files[configs.name]) 
+        && Object.keys(window.lcsFileSelection.files[configs.name]).length > 0;
+    }
+
+    // Function to check if max file count is reached
+    const isMaxFileCountReached = () => {
+        const configFileCount = isDataEmpty(configs.maxFileCount) ? 10 : parseInt(configs.maxFileCount, 10);
+        const fileCount = !isDataEmpty(window.lcsFileSelection.files[configs.name]) 
+        ? parseInt(Object.keys(window.lcsFileSelection.files[configs.name]).length, 10) : 0;
+        return fileCount >= configFileCount;
+    }
 
     // Handle file selection
     inputElement.addEventListener('change', async (event) => {
-        const selectedFiles = configs.multiple ? Array.from(event.target.files) : [event.target.files[0]].filter(Boolean);
+        if (isMaxFileCountReached()) {
+            inputElement.value = '';
+            lcsAlert.send('You have reached the maximum number of allowed files.', 'error');
+            throw new Error("File selection limit reached.");
+        }
 
+        if (configs.multiple !== true && alreadySelectedFile()) {
+            inputElement.value = '';
+            lcsAlert.send('You can only select one file.', 'error');
+            throw new Error("Multiple file selection is not allowed for this input.");
+        }
+
+        // Get and build file data
+        const selectedFiles = configs.multiple === true ? Array.from(event.target.files) : [event.target.files[0]].filter(Boolean);
+
+        // If no file selected
         if (selectedFiles.length === 0) {
             if (configs.noFileSelectedCallback) {
                 configs.noFileSelectedCallback();
@@ -367,14 +432,27 @@ export async function selectFiles(elementInControl, configs = {}) {
         fileData = fileData.filter((fd) => {
             const normalizedSFT = specifiedFileTypesArray
                 .map((sft) => {
+                    if (sft === 'image/*') return 'image';
+                    if (sft === 'video/*') return 'video';
+                    if (sft === 'audio/*') return 'audio';
                     if (fileOps.isExtension(fd.file, sft)) return fileOps.getExtensionMimeType(sft);
                     if (fileOps.isMimeType(fd.file, sft)) return sft;
                     return null;
                 })
                 .filter(Boolean);
-            const isAllowed = normalizedSFT.includes(fd.type);
+
+            const isAllowed = (normalizedSFT.includes('image') && fileOps.isImage(fd.file)) 
+            || (normalizedSFT.includes('video') && fileOps.isVideo(fd.file)) 
+            || (normalizedSFT.includes('audio') && fileOps.isAudio(fd.file)) 
+            || (isDataEmpty(fd.type) && (isFileTypesIncludesTextDocExtension(normalizedSFT) || isDataEmpty(normalizedSFT))) 
+            || normalizedSFT.includes(fd.type);
+
             if (!isAllowed) {
-                console.warn(`File "${fd.name}" (type: ${fd.type}) is not an allowed type.`);
+                if (fileData.length <= 1) {
+                    throw new Error(`File "${fd.name}" (type: ${fd.type}) is not an allowed type. Allowed types includes: ${normalizedSFT.join(',')}`);
+                } else {
+                    console.warn(`File "${fd.name}" (type: ${fd.type}) is not an allowed type. Allowed types includes: ${normalizedSFT.join(',')}`);
+                }
             }
             return isAllowed;
         });
@@ -382,25 +460,32 @@ export async function selectFiles(elementInControl, configs = {}) {
         // Validate individual file sizes
         fileData = fileData.filter((fd) => {
             const isValidFileSize = fileOps.validateFileSize(fd.file, {
-                maxSize: configs.fileMaxSize,
-                minSize: configs.fileMinSize,
+                maxSize: configs.maxFileSize,
+                minSize: configs.minFileSize,
             });
             if (!isValidFileSize) {
-                console.warn(
+                if (fileData.length <= 1) {
+                    throw new Error(
                     `File "${fd.name}" (size: ${fd.size} bytes) does not meet size requirements. ` +
-                    `Allowed range: ${configs.fileMinSize} to ${configs.fileMaxSize} bytes.`
-                );
+                    `Allowed range: ${configs.minFileSize} to ${configs.maxFileSize} bytes.`
+                    );
+                } else {
+                    console.warn(
+                    `File "${fd.name}" (size: ${fd.size} bytes) does not meet size requirements. ` +
+                    `Allowed range: ${configs.minFileSize} to ${configs.maxFileSize} bytes.`
+                    );
+                }
             }
             return isValidFileSize;
         });
 
         // Validate total file size
         const totalFileSize = fileData.reduce((sum, fd) => sum + fd.size, 0);
-        if (totalFileSize > configs.fileTotalMaxSize || totalFileSize < configs.fileTotalMinSize) {
+        if (totalFileSize > configs.totalMaxFileSize || totalFileSize < configs.totalMinFileSize) {
             throw new Error(
                 `Total file size (${fileOps.formatFileSize(totalFileSize)}) must be between ` +
-                `${fileOps.formatFileSize(configs.fileTotalMinSize)} and ` +
-                `${fileOps.formatFileSize(configs.fileTotalMaxSize)}.`
+                `${fileOps.formatFileSize(configs.totalMinFileSize)} and ` +
+                `${fileOps.formatFileSize(configs.totalMaxFileSize)}.`
             );
         }
 
@@ -413,10 +498,14 @@ export async function selectFiles(elementInControl, configs = {}) {
                     const fRatio = await fileOps.getAspectRatio(fd.file);
                     const aspectRatioMatched = fileOps.isAspectRatioMatching(fRatio, configs.imageAspectRatio);
                     if (!aspectRatioMatched) {
-                        console.warn(
-                            `Image "${fd.name}" (ratio: ${fRatio}) does not match required aspect ratios: ` +
-                            `${configs.imageAspectRatio.join(', ')}.`
-                        );
+                        const ratioWarningMsg = `Image "${fd.name}" (ratio: ${fRatio}) does not match required aspect ratios: ` + `${configs.imageAspectRatio.join(', ')}.`;
+                        if (fileData.length <= 1) {
+                            lcsAlert.send(ratioWarningMsg, 'error');
+                            throw new Error(ratioWarningMsg);
+                        } else {
+                            lcsAlert.send(ratioWarningMsg, 'warning');
+                            console.warn(ratioWarningMsg);
+                        }
                         return null;
                     }
                     return fd;
@@ -433,10 +522,17 @@ export async function selectFiles(elementInControl, configs = {}) {
                     const fRatio = await fileOps.getAspectRatio(fd.file);
                     const aspectRatioMatched = fileOps.isAspectRatioMatching(fRatio, configs.videoAspectRatio);
                     if (!aspectRatioMatched) {
-                        console.warn(
+                        if (fileData.length <= 1) {
+                            throw new Error(
                             `Video "${fd.name}" (ratio: ${fRatio}) does not match required aspect ratios: ` +
                             `${configs.videoAspectRatio.join(', ')}.`
-                        );
+                            );
+                        } else {
+                            console.warn(
+                            `Video "${fd.name}" (ratio: ${fRatio}) does not match required aspect ratios: ` +
+                            `${configs.videoAspectRatio.join(', ')}.`
+                            );
+                        }
                         return null;
                     }
                     return fd;
@@ -446,54 +542,81 @@ export async function selectFiles(elementInControl, configs = {}) {
 
         // Store files with tracking IDs
         fileData.forEach((fd) => {
-            const trackingID = generateCodes('string', 8);
+            const trackingID = generateCodes('letters', 8);
             fd.tracking_id = trackingID;
-            window.lcsFileSelection.files[inputName][trackingID] = fd;
+            window.lcsFileSelection.files[configs.name][trackingID] = fd;
         });
 
         // Generate previews if enabled
         if (configs.filePreview) {
-            let filePreviewContainer = elementInControl.parentElement.querySelector('._file_preview_container');
+
+            // The File Preview Container
+            let filePreviewContainer = elementInControl.parentElement.querySelector('.lcsFileSelectionPreview._file_preview_container');
             if (!filePreviewContainer) {
                 filePreviewContainer = document.createElement('div');
-                filePreviewContainer.classList.add('_file_preview_container');
-                elementInControl.parentElement.insertBefore(
-                    filePreviewContainer,
-                    configs.filePreviewPosition === 'top' ? elementInControl : elementInControl.nextSibling
-                );
+                filePreviewContainer.classList.add('lcsFileSelectionPreview', '_file_preview_container');
+                const insertionPosition = configs.filePreviewPosition === 'top' ? 'beforebegin' : 'afterend';
+                elementInControl.insertAdjacentElement(insertionPosition, filePreviewContainer);
             }
+            filePreviewContainer.classList.add('lcsHorizontalScrolling');
+            filePreviewContainer.dataset.ftn = configs.name;
 
+            // Create left navigator icon
+            const filePreviewLeftNavigator = filePreviewContainer.querySelector('.fa-chevron-left') 
+            ? filePreviewContainer.querySelector('.fa-chevron-left') : document.createElement('i');
+            filePreviewLeftNavigator.classList.add('fas', 'fa-chevron-left', '_scroll_btn_left');
+            filePreviewLeftNavigator.setAttribute('aria-hidden', 'true');
+            filePreviewLeftNavigator.setAttribute('title', 'Scroll left');
+
+            // Create right navigator icon
+            const filePreviewRightNavigator = filePreviewContainer.querySelector('.fa-chevron-right') 
+            ? filePreviewContainer.querySelector('.fa-chevron-right') : document.createElement('i');
+            filePreviewRightNavigator.classList.add('fas', 'fa-chevron-right', '_scroll_btn_right');
+            filePreviewRightNavigator.setAttribute('aria-hidden', 'true');
+            filePreviewRightNavigator.setAttribute('title', 'Scroll right');
+
+            // The File Preview Wrapper (Scroll Content)
+            const filePreviewWrapper = filePreviewContainer.querySelector('._file_preview_wrapper') 
+            ? filePreviewContainer.querySelector('._file_preview_wrapper') : document.createElement('div');
+            filePreviewWrapper.classList.add('_file_preview_wrapper', '_scroll_content');
+
+            // Display Previews based on file types
             for (const fd of fileData) {
                 const thisFile = fd.file;
                 const trackingID = fd.tracking_id;
                 const isMedia = await fileOps.isMedia(thisFile);
                 try {
                     if (isMedia) {
-                        await previewMediaFile(thisFile, trackingID, configs.playOnPreview, filePreviewContainer);
+                        await previewMediaFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
                     } else if (isPDFFileType(thisFile)) {
-                        await previewPDFFile(thisFile, trackingID, configs.playOnPreview, filePreviewContainer);
+                        await previewPDFFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
                     } else if (isDOCXFileType(thisFile)) {
-                        await previewDOCXFile(thisFile, trackingID, configs.playOnPreview, filePreviewContainer);
+                        await previewDOCXFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
                     } else if (fileOps.isExtensionTextDoc(fd.name)) {
-                        await previewTextDocFile(thisFile, trackingID, configs.playOnPreview, filePreviewContainer);
+                        await previewTextDocFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
                     } else {
-                        const filePreviewWrapper = document.createElement('div');
-                        filePreviewWrapper.className = '_file_preview _unknown_file_preview';
-                        filePreviewWrapper.style.overflow = 'hidden';
-                        filePreviewWrapper.style.position = 'relative';
-                        filePreviewWrapper.dataset.ftid = trackingID;
+                        const filePreview = document.createElement('div');
+                        filePreview.className = '_file_preview _unknown_file_preview';
+                        filePreview.style.overflow = 'hidden';
+                        filePreview.style.position = 'relative';
+                        filePreview.dataset.ftid = trackingID;
                         // Escape file name to prevent XSS
                         const escapedName = fd.name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        filePreviewWrapper.innerHTML = `<span>${escapedName}</span>`;
-                        filePreviewContainer.appendChild(filePreviewWrapper);
+                        filePreview.innerHTML = `<span>${escapedName}</span>`;
+                        filePreviewWrapper.appendChild(filePreview);
                     }
                 } catch (error) {
-                    console.warn(`Failed to generate preview for "${fd.name}": ${error.message}`);
+                    if (fileData.length <= 1) {
+                        throw new Error(`Failed to generate preview for "${fd.name}": ${error.message}`);
+                    } else {
+                        console.warn(`Failed to generate preview for "${fd.name}": ${error.message}`);
+                    }
                 }
             }
 
-            // Output above elementInControl
-            elementInControl.insertAdjacentHTML('afterbegin', filePreviewContainer.outerHTML);
+            // Output above respectively and clear inputElement
+            filePreviewContainer.innerHTML = filePreviewLeftNavigator.outerHTML + filePreviewWrapper.outerHTML + filePreviewRightNavigator.outerHTML;
+            inputElement.value = '';
         }
 
         // Invoke callback
@@ -507,10 +630,34 @@ export async function selectFiles(elementInControl, configs = {}) {
         elementInControl.insertAdjacentElement('beforebegin', inputElement);
     }
 
-    // Trigger file selection dialog
-    if (!configs.selectLater) {
-        inputElement.click();
+    // Set up file chooser dialog trigger if provided
+    if (!isDataEmpty(configs.fileChooserTriger)) {
+        if (!(configs.fileChooserTriger instanceof HTMLElement)) {
+            const isClassNameSelector = (typeof configs.fileChooserTriger === 'string') && configs.fileChooserTriger.startsWith('.');
+            const isIDSelector = (typeof configs.fileChooserTriger === 'string') && configs.fileChooserTriger.startsWith('#');
+    
+            if (isClassNameSelector || isIDSelector) {
+                configs.fileChooserTriger = document.querySelector(configs.fileChooserTriger);
+    
+                if (!(configs.fileChooserTriger instanceof HTMLElement)) {
+                    throw new Error("The selector did not match any DOM element.");
+                }
+            } else {
+                throw new Error("Invalid fileChooserTriger: must be an HTMLElement, ID selector (#id), or class selector (.class).");
+            }
+        }
+    
+        configs.fileChooserTriger.addEventListener('click', () => {
+            inputElement.click();
+        });
     }
+
+    // Hide inputElement if max file count reached
+    if (isMaxFileCountReached() || (configs.multiple !== true && alreadySelectedFile())) {
+        inputElement.classList.add('_max_file_count_reached');
+        inputElement.style.display = 'none';
+    }
+
 }
 
 
@@ -538,42 +685,51 @@ async function previewMediaFile(file, trackingID, playable = true, container) {
         throw new Error('Invalid container. Must be a valid HTMLElement.');
     }
 
-    const filePreviewWrapper = document.createElement('div');
-    filePreviewWrapper.className = '_file_preview _media_file_preview';
-    filePreviewWrapper.style.overflow = 'hidden';
-    filePreviewWrapper.style.position = 'relative';
-    filePreviewWrapper.dataset.ftid = trackingID;
+    const filePreview = document.createElement('div');
+    filePreview.className = '_file_preview _media_file_preview';
+    filePreview.style.overflow = 'hidden';
+    filePreview.style.position = 'relative';
+    filePreview.dataset.ftid = trackingID;
 
     let mediaFileElement;
+    let removeFileLabel = 'Remove file';
     if (file.type.startsWith('image/')) {
         image.setFile(file);
-        mediaFileElement = await image.renderImage(filePreviewWrapper);
-        filePreviewWrapper.classList.add('_image_preview');
+        mediaFileElement = await image.renderImage(filePreview);
+        filePreview.classList.add('_image_preview');
         if (playable) {
-            filePreviewWrapper.classList.add('_will_expand');
-            filePreviewWrapper.insertAdjacentHTML(
+            filePreview.classList.add('_will_expand');
+            filePreview.insertAdjacentHTML(
                 'beforeend',
-                `<button type="button" class="_expand_container"><i class="fa-solid fa-expand" title="Expand image"></i></button>`
+                `<i class="fa-solid fa-expand _expand_container _expand_icon" title="Expand image"></i>`
             );
         }
+        removeFileLabel = 'Remove image';
     } else if (file.type.startsWith('video/')) {
         video.setFile(file);
-        mediaFileElement = await video.renderPlayer(filePreviewWrapper, playable, playable);
-        filePreviewWrapper.classList.add('_video_preview');
+        mediaFileElement = await video.renderPlayer(filePreview, playable, playable);
+        filePreview.classList.add('_video_preview');
         if (playable) {
-            filePreviewWrapper.classList.add('_will_expand');
-            filePreviewWrapper.insertAdjacentHTML(
+            filePreview.classList.add('_will_expand');
+            filePreview.insertAdjacentHTML(
                 'beforeend',
-                `<button type="button" class="_expand_container"><i class="fa-solid fa-expand" title="Expand video"></i></button>`
+                `<i class="fa-solid fa-expand _expand_container _expand_icon" title="Expand video"></i>`
             );
         }
+        removeFileLabel = 'Remove video';
     } else if (file.type.startsWith('audio/')) {
         audio.setFile(file);
-        mediaFileElement = await audio.renderPlayer(filePreviewWrapper, playable);
-        filePreviewWrapper.classList.add('_audio_preview');
+        mediaFileElement = await audio.renderPlayer(filePreview, playable);
+        filePreview.classList.add('_audio_preview');
+        removeFileLabel = 'Remove audio';
     }
 
-    container.appendChild(filePreviewWrapper);
+    filePreview.insertAdjacentHTML(
+        'afterbegin',
+        `<i class="fa fa-times _remove_file _remove_icon" title="${removeFileLabel}"></i>`
+    );
+
+    container.appendChild(filePreview);
     if (mediaFileElement) {
         observeFileToEnsurePlayable(mediaFileElement, playable);
     }
@@ -600,20 +756,30 @@ async function previewPDFFile(file, trackingID, playable = true, container) {
         throw new Error('Invalid container. Must be a valid HTMLElement.');
     }
 
-    const filePreviewWrapper = document.createElement('div');
-    filePreviewWrapper.className = '_file_preview _pdf_preview';
-    filePreviewWrapper.style.overflow = 'hidden';
-    filePreviewWrapper.style.position = 'relative';
-    filePreviewWrapper.dataset.ftid = trackingID;
+    const filePreview = document.createElement('div');
+    filePreview.className = '_file_preview _pdf_preview';
+    filePreview.style.overflow = 'hidden';
+    filePreview.style.position = 'relative';
+    filePreview.dataset.ftid = trackingID;
+
+    const fileNamePreview = document.createElement('span');
+    fileNamePreview.classList.add('_file_name');
+    fileNamePreview.textContent = file.name;
 
     pdf.setFile(file);
-    await pdf.renderFirstPage(filePreviewWrapper);
+    await pdf.renderFirstPage(filePreview);
     if (playable) {
-        filePreviewWrapper.classList.add('_is_interactive');
+        filePreview.classList.add('_is_interactive');
     }
 
-    container.appendChild(filePreviewWrapper);
-    observeFileToEnsurePlayable(filePreviewWrapper, playable);
+    filePreview.insertAdjacentHTML(
+        'afterbegin',
+        `<i class="fa fa-times _remove_file _remove_icon" title="Remove PDF"></i>`
+    );
+
+    filePreview.appendChild(fileNamePreview);
+    container.appendChild(filePreview);
+    observeFileToEnsurePlayable(filePreview, playable);
 }
 
 /**
@@ -636,20 +802,30 @@ async function previewDOCXFile(file, trackingID, playable = true, container) {
         throw new Error('Invalid container. Must be a valid HTMLElement.');
     }
 
-    const filePreviewWrapper = document.createElement('div');
-    filePreviewWrapper.className = '_file_preview _doc_preview';
-    filePreviewWrapper.style.overflow = 'hidden';
-    filePreviewWrapper.style.position = 'relative';
-    filePreviewWrapper.dataset.ftid = trackingID;
+    const filePreview = document.createElement('div');
+    filePreview.className = '_file_preview _doc_preview';
+    filePreview.style.overflow = 'hidden';
+    filePreview.style.position = 'relative';
+    filePreview.dataset.ftid = trackingID;
+
+    const fileNamePreview = document.createElement('span');
+    fileNamePreview.classList.add('_file_name');
+    fileNamePreview.textContent = file.name;
 
     docx.setFile(file);
-    await docx.renderDOCX(filePreviewWrapper);
+    await docx.renderDOCX(filePreview);
     if (playable) {
-        filePreviewWrapper.classList.add('_is_interactive');
+        filePreview.classList.add('_is_interactive');
     }
 
-    container.appendChild(filePreviewWrapper);
-    observeFileToEnsurePlayable(filePreviewWrapper, playable);
+    filePreview.insertAdjacentHTML(
+        'afterbegin',
+        `<i class="fa fa-times _remove_file _remove_icon" title="Remove file"></i>`
+    );
+
+    filePreview.appendChild(fileNamePreview);
+    container.appendChild(filePreview);
+    observeFileToEnsurePlayable(filePreview, playable);
 }
 
 /**
@@ -672,20 +848,30 @@ async function previewTextDocFile(file, trackingID, playable = true, container) 
         throw new Error('Invalid container. Must be a valid HTMLElement.');
     }
 
-    const filePreviewWrapper = document.createElement('div');
-    filePreviewWrapper.className = '_file_preview _text_preview';
-    filePreviewWrapper.style.overflow = 'hidden';
-    filePreviewWrapper.style.position = 'relative';
-    filePreviewWrapper.dataset.ftid = trackingID;
+    const filePreview = document.createElement('div');
+    filePreview.className = '_file_preview _text_doc_preview';
+    filePreview.style.overflow = 'hidden';
+    filePreview.style.position = 'relative';
+    filePreview.dataset.ftid = trackingID;
+
+    const fileNamePreview = document.createElement('span');
+    fileNamePreview.classList.add('_file_name');
+    fileNamePreview.textContent = file.name;
 
     textDoc.setFile(file);
-    await textDoc.renderText(filePreviewWrapper, playable);
+    await textDoc.renderText(filePreview, playable);
     if (playable) {
-        filePreviewWrapper.classList.add('_is_editable');
+        filePreview.classList.add('_is_editable');
     }
 
-    container.appendChild(filePreviewWrapper);
-    observeFileToEnsurePlayable(filePreviewWrapper, playable);
+    filePreview.insertAdjacentHTML(
+        'afterbegin',
+        `<i class="fa fa-times _remove_file _remove_icon" title="Remove file"></i>`
+    );
+
+    filePreview.appendChild(fileNamePreview);
+    container.appendChild(filePreview);
+    observeFileToEnsurePlayable(filePreview, playable);
 }
 
 /**
@@ -747,7 +933,7 @@ function observeFileToEnsurePlayable(fileElement, playableState = true) {
                         fileElement.classList.remove('_is_interactive');
                         console.warn('DOCX "_is_interactive" class was added and removed.');
                     }
-                } else if (fileElement.classList.contains('_text_preview') && mutation.attributeName === 'class') {
+                } else if (fileElement.classList.contains('_text_doc_preview') && mutation.attributeName === 'class') {
                     const shouldBeEditable = playableState;
                     const isEditable = fileElement.classList.contains('_is_editable');
                     if (shouldBeEditable && !isEditable) {
@@ -764,3 +950,63 @@ function observeFileToEnsurePlayable(fileElement, playableState = true) {
 
     observer.observe(fileElement, { attributes: true, attributeOldValue: true, attributeFilter: ['controls', 'class'] });
 }
+
+/**
+ * Global click event listener to handle file preview removal in the UI.
+ * 
+ * Listens for any click event on the document. If the clicked element is part of a 
+ * `.lcsFileSelectionPreview` container and matches the remove file trigger (`._remove_file`), 
+ * it removes the file preview from the DOM and deletes the file entry from 
+ * `window.lcsFileSelection.files`.
+ * 
+ * Dependencies:
+ * - `window.lcsFileSelection.files` must exist and follow the format:
+ *   { [fileTrackingName]: { [fileTrackingID]: { name: string, ... } } }
+ * - `isDataEmpty()` is assumed to be a global utility function that checks if a value is null, undefined, or empty.
+ * - `lcsAlert.send()` is assumed to be a class method that shows UI alerts.
+ */
+document.addEventListener('click', (event) => {
+    // Identify the nearest file preview container
+    const fileSelectionPreview = event.target.closest('.lcsFileSelectionPreview');
+    if (!fileSelectionPreview) return;
+
+    // Check if the click is on a file remove button
+    const removeFileButton = event.target.closest('._remove_file');
+    if (removeFileButton) {
+        // Locate the specific file preview element to remove
+        const fileToRemove = removeFileButton.closest('._file_preview');
+
+        if (!fileToRemove) {
+            lcsAlert.send('File to remove not found!', 'error');
+            return;
+        }
+
+        // Extract identifiers for file tracking
+        const fileTrackingName = fileSelectionPreview.dataset.ftn;
+        const fileTrackingID = fileToRemove.dataset.ftid;
+
+        // Validate and access the file entry in the tracking object
+        const fileEntry = window.lcsFileSelection.files[fileTrackingName]?.[fileTrackingID];
+        if (isDataEmpty(fileEntry)) {
+            lcsAlert.send('File to remove not found! Tracking ID/Tracking Name missing or invalid.', 'error');
+            return;
+        }
+
+        const fileToRemoveName = fileEntry.name;
+
+        // Delete the file from tracking and remove the preview from the DOM
+        delete window.lcsFileSelection.files[fileTrackingName][fileTrackingID];
+        fileToRemove.remove();
+
+        // Notify the user of successful removal
+        lcsAlert.send(`File <strong>${fileToRemoveName}</strong> removed successfully`);
+
+        // Show inputElement propably hidden when max file count was reached
+        if (document.querySelector(`input.lcsFileSelection._max_file_count_reached[name="${fileTrackingName}"]`)) {
+            document.querySelector(`input.lcsFileSelection._max_file_count_reached[name="${fileTrackingName}"]`).classList.remove('_max_file_count_reached');
+            document.querySelector(`input.lcsFileSelection._max_file_count_reached[name="${fileTrackingName}"]`).style.display = 'block';
+        };
+    }
+});
+
+export const fileSelectionInitialized = true;

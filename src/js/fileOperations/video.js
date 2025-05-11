@@ -1,5 +1,5 @@
-import { isDataEmpty } from "../workingTools/dataTypes";
-import { lcsFileOps as fileOps } from "./file";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
+import { file as fileOps } from "./file.js";
 
 /**
  * A utility class for loading and retrieving metadata from video files.

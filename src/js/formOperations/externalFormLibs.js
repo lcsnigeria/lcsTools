@@ -1,6 +1,4 @@
-// Import customized styles
-import '../../css/formTools/externalFormLibs.css';
-import { hooks } from "../hooks";
+import { hooks } from "../hooks.js";
 
 /**
  * Reads the <meta> tag named "lcs_external_libs_cdn" to determine which CDN provider

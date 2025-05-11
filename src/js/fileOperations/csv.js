@@ -1,5 +1,4 @@
-import '../../css/fileOperations/csv.css';
-import { isDataEmpty } from "../workingTools/dataTypes";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
 
 const PAPA_PARSE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js";
 

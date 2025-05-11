@@ -1,4 +1,4 @@
-import { capitalizeWords } from "./stringOps";
+import { capitalizeWords } from "./stringOps.js";
 
 /**
  * Checks if any item in the given ItemsParam is partially matched in ArrayParam (case-insensitive).

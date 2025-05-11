@@ -1,5 +1,5 @@
-import { isDataEmpty } from "../workingTools/dataTypes";
-import { lcsFileOps as fileOps } from "./file";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
+import { file as fileOps } from "./file.js";
 
 /**
  * A utility class for loading and retrieving metadata from image files.
@@ -186,8 +186,6 @@ class lcsLoadImage {
         const img = document.createElement('img');
         img.src = this.#imageElement.src;
         img.alt = alt;
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
 
         container.appendChild(img);
 

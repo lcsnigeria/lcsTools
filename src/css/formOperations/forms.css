@@ -40,7 +40,10 @@
     color: var(--formDescColor);
     margin: 10px 0;
 }
-.lcsForm ._form_note, small {
+.lcsForm ._form_note, 
+.lcsForm small, 
+.lcsForm ._note, 
+.lcsForm ._info {
     color: var(--formDescColor);
     font-size: 14px;
 }

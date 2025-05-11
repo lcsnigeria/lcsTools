@@ -21,6 +21,7 @@ module.exports = {
   output: {
     filename: 'lt.min.js', // Name of the output JS file after bundling
     path: path.resolve(__dirname, 'dist'), // Output directory (absolute path to dist/)
+    clean: true,
     library: {
       name: 'lcsTools', // Name of the global variable for the library
       type: 'umd'       // Universal Module Definition for CommonJS, AMD, and browser compatibility

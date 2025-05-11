@@ -1,4 +1,4 @@
-import { isDataEmpty } from "../workingTools/dataTypes";
+import { isDataEmpty } from "../workingTools/dataTypes.js";
 
 const pdfJSCDN = {
     main: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
