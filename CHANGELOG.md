@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.66](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.65...v0.0.66) (2025-05-11)
+
+
+### Features
+
+* Improved selectFiles, formSubmissions, alert to an advanced class lcsAlert; rearranged directories and files. fix: arrayOps.js, and more ([bf4349b](https://github.com/lcsnigeria/lcs_tools/commit/bf4349b6f8b00597613ecc6211717906fb28baf8))
+
 ### [0.0.65](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.64...v0.0.65) (2025-05-11)
 
 ### [0.0.64](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.63...v0.0.64) (2025-05-11)
