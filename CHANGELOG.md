@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.74](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.73...v0.0.74) (2025-05-26)
+
+
+### Features
+
+* Add color operations utility module with color name retrieval and validation ([40cebcc](https://github.com/lcsnigeria/lcs_tools/commit/40cebccccedfb523f974ac188efc052cf16934c6))
+
 ### [0.0.73](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.72...v0.0.73) (2025-05-26)
 
 ### [0.0.72](https://github.com/lcsnigeria/lcs_tools/compare/v0.0.71...v0.0.72) (2025-05-25)
