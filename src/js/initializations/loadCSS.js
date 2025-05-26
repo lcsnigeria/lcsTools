@@ -13,4 +13,6 @@ import '../../css/formOperations/dropdownOptionSelection.css';
 import '../../css/formOperations/pillOptionSelection.css';
 import '../../css/formOperations/externalFormLibs.css';
 
+import '../../css/animations/loader.css';
+
 export const cssLoaded = true;

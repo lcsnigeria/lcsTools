@@ -20,8 +20,15 @@ export * from './js/workingTools/credsAndCodes.js';
 export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';
 export * from './js/workingTools/elementOps.js';
+export * from './js/workingTools/colorOps.js';
 export * from './js/locationTools.js';
 export * from './js/alertsAndLogs/alerts.js';
+
+// UI/Element Tools/Manipulation
+export * from './js/workingTools/elementOps/ops.js';
+export * from './js/workingTools/elementOps/uiAndElementManipulation/elementScrolling.js';
+export * from './js/workingTools/elementOps/uiAndElementManipulation/closeContainerElement.js';
+export * from './js/workingTools/elementOps/uiAndElementManipulation/horizontalScrolling.js';
 
 // Request
 export * from './js/requests/ajaxRequest.js';
@@ -49,7 +56,5 @@ export * from './js/formOperations/dropdownOptionSelection.js';
 export * from './js/formOperations/pillOptionSelection.js';
 export * from './js/formOperations/externalFormLibs.js';
 
-// UI/Element Manipulation
-export * from './js/uiAndElementManipulation/elementScrolling.js';
-export * from './js/uiAndElementManipulation/closeContainerElement.js';
-export * from './js/uiAndElementManipulation/horizontalScrolling.js';
+// Animations
+export * from './js/animations/loader.js';

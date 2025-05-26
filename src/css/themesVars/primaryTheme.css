@@ -2,6 +2,7 @@
     --bgColor: #ffffff;
     --textColor: #333333;
     --primaryColor: #fc1436;
+    --primaryColorFade: #fc143622;
     --whiteColor: #ffffff;
     --blackColor: rgba(0,0,0);
     --dimmedBlackColor: rgba(113, 113, 113, 1);
@@ -33,4 +34,8 @@
     --success: #DDF3D5;
     --successText: #597151;
     --errorTextColor: red;
+
+    /* Loader Colors */
+    --loaderColor: var(--primaryColor);
+    --loaderColorFade: var(--primaryColorFade);
 }

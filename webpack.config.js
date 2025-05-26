@@ -96,9 +96,7 @@ module.exports = {
   // Optimization settings
   // Configures bundle splitting and code elimination for smaller output
   optimization: {
-    splitChunks: {
-      chunks: 'all' // Split vendor and shared modules into separate chunks for better caching
-    }
+    splitChunks: false
   },
 
   // Performance-related configurations

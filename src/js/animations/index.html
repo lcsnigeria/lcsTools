@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animations Testing Environment</title>
+    <link rel="stylesheet" href="../../css/themesVars/primaryTheme.css">
+    <link rel="stylesheet" href="../../css/animations/loader.css">
+</head>
+<body>
+    <h1>HI, Testing Animations</h1>
+
+    <h2>Loader Animations</h2>
+    
+    <div>
+        <p>Spinner Loader</p>
+        <div class="lcsLoader">
+            <div class="_loader _spinner"></div>
+        </div>
+    </div>
+
+    <div>
+        <p>Progress-Infinity Loader</p>
+        <div class="lcsLoader">
+            <div class="_loader _progress_infinity"></div>
+        </div>
+
+        <p>Progress Loader</p>
+        <div class="lcsLoader">
+            <progress class="_loader _progress" value="0" max="100"></progress>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the lcsLoader class (assuming it's in a module)
+        import lcsLoader from './loader.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create a container div in HTML for the loader
+            const container = document.createElement('div');
+            container.id = 'loaderContainer';
+            container.style.height = '200px'; // For visibility
+            document.body.appendChild(container);
+
+            // Initialize a loader instance with custom options
+            const loader = new lcsLoader(
+                'spinner',        // Style: spinner
+                'normal',        // Size: normal
+                '#3498db',       // Color: blue
+                '#loaderContainer', // Container: #loaderContainer
+                'rgba(0,0,0,0.2)', // Container background: semi-transparent black
+                'absolute'       // Position: absolute
+            );
+
+            // Start the loader
+            const thisLoader = loader.start();
+
+            // Simulate changing the loader style after 2 seconds
+            setTimeout(() => {
+                loader.changeStyle('spinner-gear', thisLoader); // Switch to pulse style
+                console.log('Changed loader style to gear');
+            }, 2000);
+
+            // Simulate changing the loader size after 4 seconds
+            setTimeout(() => {
+                loader.changeSize('large', thisLoader); // Increase size to large
+                console.log('Changed loader size to large');
+            }, 4000);
+
+            setTimeout(() => {
+                loader.clearLoader(thisLoader); // Clear
+                console.log('Loader cleared');
+            }, 10000);
+        })
+    </script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressBar = document.querySelector('._progress');
+            let currentValue = 0;
+
+            function updateProgress(newValue, duration = 500) {
+                // Set the new value, CSS transition will handle the animation
+                progressBar.style.transitionDuration = `${duration / 1000}s`;
+                progressBar.value = newValue;
+            }
+
+            // Example usage:
+            // Simulate progress
+            let progressInterval;
+            let progress = 0;
+
+            function startProgressSimulation() {
+                progress = 0;
+                progressBar.value = 0;
+                progressBar.removeAttribute('style'); // Clear any previous transition duration
+                clearInterval(progressInterval); // Clear any existing interval
+
+                progressInterval = setInterval(() => {
+                    if (progress < 100) {
+                        progress += 5; // Increment by 5%
+                        updateProgress(progress, 300); // Animate over 300ms
+                    } else {
+                        clearInterval(progressInterval);
+                        console.log('Progress complete!');
+                    }
+                }, 100); // Update every 300ms
+            }
+
+            // Start simulation when the page loads or on a button click
+            startProgressSimulation();
+
+            // Or, if you want to set a specific value:
+            // updateProgress(75);
+        })
+    </script>
+</body>
+</html>

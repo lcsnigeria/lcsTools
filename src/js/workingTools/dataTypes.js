@@ -145,13 +145,14 @@ export function isDataEmpty(data) {
     // Objects: empty if no own enumerable properties
     if (typeof data === 'object') {
         if (
-            data instanceof File ||
-            data instanceof Blob ||
-            data instanceof FileList ||
-            data instanceof FormData ||
-            data instanceof URLSearchParams ||
-            data instanceof Map ||
-            data instanceof Set ||
+            data instanceof File || 
+            data instanceof Blob || 
+            data instanceof FileList || 
+            data instanceof FormData || 
+            data instanceof URLSearchParams || 
+            data instanceof Map || 
+            data instanceof Set || 
+            data instanceof HTMLElement || 
             ArrayBuffer.isView(data) || // For TypedArrays
             data instanceof ArrayBuffer
         ) {

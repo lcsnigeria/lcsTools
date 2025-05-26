@@ -106,6 +106,7 @@
 /* Alert message content */
 .lcsAlert ._alert_content {
     flex: 1; /* Takes up remaining space */
+    overflow-wrap: anywhere;
 }
 
 /* Styling for different alert types */

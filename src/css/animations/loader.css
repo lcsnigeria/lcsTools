@@ -1,0 +1,289 @@
+._loader_container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+
+/* SPINNER */
+._loader._spinner {
+  width: 50px;
+  min-width: 50px;
+  height: 50px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 8px solid var(--loaderColorFade, #f0f0f099);
+  border-right-color: var(--loaderColor, #cccccc);
+  animation: sl 1s infinite linear;
+}
+@keyframes sl {to{transform: rotate(1turn)}}
+/* spinner sizing */
+._loader._spinner._large {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    border-width: 8px;
+}
+._loader._spinner._normal {
+    width: 35px;
+    min-width: 35px;
+    height: 35px;
+    border-width: 6px;
+}
+._loader._spinner._small {
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
+    border-width: 4px;
+}
+._loader._spinner._mini {
+    width: 15px;
+    min-width: 15px;
+    height: 15px;
+    border-width: 2px;
+}
+
+/* SPINNER-FADE */
+._loader._spinner_fade {
+  width: 50px;
+  padding: 8px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--loaderColor, #cccccc);
+  --_m: 
+    conic-gradient(#0000 10%,#000),
+    linear-gradient(#000 0 0) content-box;
+  -webkit-mask: var(--_m);
+          mask: var(--_m);
+  -webkit-mask-composite: source-out;
+          mask-composite: subtract;
+  animation: sfl 1s infinite linear;
+}
+@keyframes sfl {to{transform: rotate(1turn)}}
+/* spinner-fade sizing */
+._loader._spinner_fade._large {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    padding: 8px;
+}
+._loader._spinner_fade._normal {
+    width: 35px;
+    min-width: 35px;
+    height: 35px;
+    padding: 6px;
+}
+._loader._spinner_fade._small {
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
+    padding: 4px;
+}
+._loader._spinner_fade._mini {
+    width: 15px;
+    min-width: 15px;
+    height: 15px;
+    padding: 2px;
+}
+
+/* SPINNER-FADE-SMOOTH */
+._loader._spinner_fade_smooth {
+  width: 65px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: 
+    radial-gradient(farthest-side,var(--loaderColor, #cccccc) 94%,#0000) top/8px 8px no-repeat,
+    conic-gradient(#0000 30%,var(--loaderColor, #cccccc));
+  -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
+  mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
+  animation: sfsl 1s infinite linear;
+}
+@keyframes sfsl{100%{transform: rotate(1turn)}}
+/* spinner-fade-smooth sizing */
+._loader._spinner_fade_smooth._large {
+    width: 65px;
+    min-width: 65px;
+    height: 65px;
+}
+._loader._spinner_fade_smooth._normal {
+    width: 35px;
+    min-width: 35px;
+    height: 35px;
+}
+._loader._spinner_fade_smooth._small, ._loader._spinner_fade_smooth._mini {
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
+}
+
+/* spinner-gear */
+._loader._spinner_gear {
+  width: 50px;
+  aspect-ratio: 1;
+  display: grid;
+  color: var(--loaderColor, #cccccc);
+  background: radial-gradient(farthest-side, currentColor calc(100% - 6px),#0000 calc(100% - 5px) 0);
+  -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 14px),#000 calc(100% - 13px));
+  mask: radial-gradient(farthest-side,#0000 calc(100% - 14px),#000 calc(100% - 13px));
+  border-radius: 50%;
+  animation: sgl 2s infinite linear;
+}
+._loader._spinner_gear::before,
+._loader._spinner_gear::after {    
+  content: "";
+  grid-area: 1/1;
+  background:
+    linear-gradient(currentColor 0 0) center,
+    linear-gradient(currentColor 0 0) center;
+  background-size: 100% 10px,10px 100%;
+  background-repeat: no-repeat;
+}
+._loader._spinner_gear::after {
+   transform: rotate(45deg);
+}
+@keyframes sgl {100%{transform: rotate(1turn)}}
+/* spinner-gear sizing */
+._loader._spinner_gear._large {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+}
+._loader._spinner_gear._normal {
+  background: radial-gradient(farthest-side, currentColor calc(100% - 4px),#0000 calc(100% - 3px) 0);
+  -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 11px),#000 calc(100% - 10px));
+  mask: radial-gradient(farthest-side,#0000 calc(100% - 11px),#000 calc(100% - 10px));
+}
+._loader._spinner_gear._normal {
+    width: 35px;
+    min-width: 35px;
+    height: 35px;
+}
+._loader._spinner_gear._normal::before,
+._loader._spinner_gear._normal::after {
+    background-size: 100% 7px,7px 100%;
+}
+._loader._spinner_gear._small,
+._loader._spinner_gear._mini {
+  background: radial-gradient(farthest-side, currentColor calc(100% - 3px),#0000 calc(100% - 3px) 0);
+  -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 calc(100% - 8px));
+  mask: radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 calc(100% - 8px));
+}
+._loader._spinner_gear._small, ._loader._spinner_gear._mini {
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
+}
+._loader._spinner_gear._small::before,
+._loader._spinner_gear._small::after,
+._loader._spinner_gear._mini::before,
+._loader._spinner_gear._mini::after {
+    background-size: 100% 5px,5px 100%;
+}
+
+/* PROGRESS-INFINITY */
+._loader._progress_infinity {
+  height: 8px;
+  width: 140px;
+  background: no-repeat linear-gradient(var(--loaderColor, #cccccc) 0 0),
+  no-repeat linear-gradient(var(--loaderColor, #cccccc) 0 0), var(--loaderColorFade, #f0f0f099);
+  background-size: 60% 100%;
+  animation: l16 3s infinite;
+}
+@keyframes l16 {
+  0%   {background-position:-150% 0,-150% 0}
+  66%  {background-position: 250% 0,-150% 0}
+  100% {background-position: 250% 0, 250% 0}
+}
+/* progress-infinity sizing */
+._loader._progress_infinity._large {
+  height: 8px;
+  width: 140px;
+}
+._loader._progress_infinity._normal {
+  height: 6px;
+  width: 130px;
+}
+._loader._progress_infinity._small {
+  height: 4px;
+  width: 120px;
+}
+._loader._progress_infinity._mini {
+  height: 2px;
+  width: 100px;
+}
+
+/* PROGRESS */
+/* Basic styling for the progress element itself */
+progress {
+  height: 8px;
+  width: 140px;
+  appearance: none; /* Remove default browser styling */
+  -webkit-appearance: none; /* For WebKit browsers */
+  overflow: hidden; /* Ensures the bar stays within bounds */
+}
+/* Style the progress bar track (the empty part) */
+progress::-webkit-progress-bar {
+  background-color: var(--loaderColorFade, #f0f0f099);
+}
+progress::-moz-progress-bar { /* Firefox uses this for the filled bar directly */
+  background-color: var(--loaderColor, #cccccc); /* Green */
+  transition: width 0.5s ease-in-out; /* Apply transition to the width */
+}
+/* Style the progress bar value (the filled part) */
+progress::-webkit-progress-value {
+  background-color: var(--loaderColor, #cccccc); /* Green */
+  transition: width 0.5s ease-in-out; /* Apply transition to the width */
+}
+/* For indeterminate state (no value attribute) */
+progress:not([value])::-webkit-progress-bar {
+  /* Style for indeterminate state for WebKit */
+  background-color: var(--loaderColorFade, #f0f0f099);
+}
+progress:not([value])::-webkit-progress-value {
+  /* Animation for indeterminate state */
+  background-color: var(--loaderColor, #cccccc);
+  animation: indeterminate-progress 1s infinite linear;
+}
+progress:not([value])::-moz-progress-bar {
+  /* Animation for indeterminate state for Firefox */
+  background-color: var(--loaderColor, #cccccc);
+  animation: indeterminate-progress 1s infinite linear;
+}
+@keyframes indeterminate-progress {
+  0% {
+    width: 0%;
+    transform: translateX(0%);
+  }
+  50% {
+    width: 30%; /* Shorter bar */
+    transform: translateX(100%); /* Moves across the track */
+  }
+  100% {
+    width: 0%;
+    transform: translateX(200%); /* Disappears */
+  }
+}
+/* progress sizing */
+progress._large {
+  height: 8px;
+  width: 140px;
+}
+progress._normal {
+  height: 6px;
+  width: 130px;
+}
+progress._small {
+  height: 4px;
+  width: 120px;
+}
+progress._mini {
+  height: 2px;
+  width: 100px;
+}
