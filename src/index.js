@@ -11,6 +11,9 @@ export * from './js/initializations/loadCSS.js';
 // Hooks
 export * from './js/hooks.js';
 
+// Functions Tools & Operations
+export * from './js/workingTools/functionOps.js';
+
 // Storage
 export * from './js/dataStorage/localDatabase.js';
 
@@ -21,6 +24,7 @@ export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';
 export * from './js/workingTools/elementOps.js';
 export * from './js/workingTools/colorOps.js';
+export * from './js/workingTools/urlOps.js';
 export * from './js/locationTools.js';
 export * from './js/alertsAndLogs/alerts.js';
 

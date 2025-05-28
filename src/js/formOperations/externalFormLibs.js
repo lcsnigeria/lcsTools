@@ -1,4 +1,5 @@
 import { hooks } from "../hooks.js";
+import { executeFunction } from "../workingTools/functionOps.js";
 
 /**
  * Reads the <meta> tag named "lcs_external_libs_cdn" to determine which CDN provider
@@ -58,7 +59,7 @@ let externalLibsCDNProviders = [];
  *
  * @throws {Error} If any script fails to load, an error is logged but execution continues.
  */
-async function loadExternalLibsCDN() {
+async function loadExternalFormLibsCDN() {
   // Determine which providers to load
   const providers = metaConfigProvider
     ? { [metaConfigProvider]: externalLibsCDN[metaConfigProvider] }
@@ -106,7 +107,6 @@ async function loadExternalLibsCDN() {
   Promise.all(promises)
     .then(() => {
       externalLibsCDNLoaded = true;
-      console.info('All external libraries loaded successfully.');
       for (const providerKey in providers) {
         const resources = providers[providerKey];
         if (typeof resources.init_callback === 'function') {
@@ -138,7 +138,7 @@ let loadedChoicesElements = [];
  * desired settings to the element.
  */
 export async function loadChoicesLibs() {
-  await loadExternalLibsCDN();
+  await loadExternalFormLibsCDN();
 
   if (externalLibsCDNLoaded && externalLibsCDNProviders.includes('choices')) {
     const allSelectFormElements = document.querySelectorAll('.lcsForm ._select_by_choices, .lcsForm ._input_by_choices');
@@ -245,12 +245,10 @@ export async function loadChoicesLibs() {
  * It attempts to load the library multiple times in case of failure.
  *
  * @example
- * // After loadExternalLibsCDN() completes, this will run automatically:
+ * // After loadExternalFormLibsCDN() completes, this will run automatically:
  * // Initializes the Choices.js dropdown for work mode selection.
  */
 async function initializeChoices() {
-  console.info('Initializing Choices.js...');
-
   try {
     // Attempt initial load
     await loadChoicesLibs();
@@ -276,9 +274,14 @@ async function initializeChoices() {
   const repeatChoiceLoad = setInterval(retryLoad, 200);
 }
 
+
+function refreshChoicesLibs() {
+  executeFunction(loadChoicesLibs, 0, 3, 200);
+}
+
 // Kick off the dynamic loading process immediately
 (async() => {
-    await loadExternalLibsCDN();
-    document.addEventListener('DOMContentLoaded', initializeChoices);
-    hooks.addAction('lcsAjaxRequest', loadChoicesLibs);
+  await loadExternalFormLibsCDN();
+  document.addEventListener('DOMContentLoaded', initializeChoices);
+  hooks.addAction('lcsAjaxRequestCompleted', refreshChoicesLibs);
 })();

@@ -1,8 +1,8 @@
 import { hooks } from '../hooks.js';
-import { isDataEmpty } from '../workingTools/dataTypes.js';
+import { isDataEmpty, isDataObject } from '../workingTools/dataTypes.js';
 
 const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]'); // Get the AJAX object meta tag.
-const lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {}; // Parse the AJAX object from the meta tag.
+let lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {}; // Parse the AJAX object from the meta tag.
 
 /**
  * A utility class for making AJAX requests with support for Fetch API and XMLHttpRequest (XHR).
@@ -53,10 +53,17 @@ class lcsAjaxRequest {
      * @param {string} method - The HTTP method ('GET' or 'POST').
      * @param {object} headers - Custom headers to include in the request.
      */
-    constructor(url, method, headers) {
+    constructor(url, method, headers = {}) {
+        // URL
         this.#url = url;
+
+        // METHOD
         this.#method = method;
-        this.#headers = headers;
+
+        // HEADERS
+        this.#headers = !isDataEmpty(headers) && isDataObject(headers) ? headers : {};
+
+        // NONCE URL
         this.#nonce_url = url; // Nonce URL defaults to the request URL
     }
 
@@ -79,6 +86,7 @@ class lcsAjaxRequest {
             throw new Error('Invalid headers: must be an object.');
         }
         this.#headers = { ...this.defaultHeaders(), ...this.#headers };
+        
         Object.keys(this.#headers).forEach(hk => {
             if (hk.toLowerCase() === 'content-type' && this.isFormData()) {
                 delete this.#headers[hk]; // Browser sets Content-Type for FormData
@@ -210,11 +218,13 @@ class lcsAjaxRequest {
         if (!navigator.onLine) {
             if (!this.#waitOffline) {
                 hooks.doAction(`lcsAjaxFailedOnOffline${this.#hooksID}`);
+                hooks.doAction(`lcsAjaxRequestFailedOnOffline`);
                 throw new Error('No internet connection detected.');
             }
 
             this.#isAjaxInterrupted = true;
-            hooks.doAction(`lcsAjaxInterrupted${this.#hooksID}`);
+            hooks.doAction(`lcsAjaxIsInterrupted${this.#hooksID}`);
+            hooks.doAction(`lcsAjaxRequestIsInterrupted`);
 
             // Wait for connection with a timeout and online event listener
             let timeWaited = 0;
@@ -232,6 +242,7 @@ class lcsAjaxRequest {
                     } else if (timeWaited >= maxWaitTime) {
                         window.removeEventListener('online', onlineHandler);
                         hooks.doAction(`lcsAjaxFailedOnOffline${this.#hooksID}`);
+                        hooks.doAction(`lcsAjaxRequestFailedOnOffline`);
                         reject(new Error('No internet connection after waiting.'));
                     } else {
                         timeWaited += pollInterval;
@@ -245,11 +256,13 @@ class lcsAjaxRequest {
         // Trigger resume hook if connection was interrupted
         if (navigator.onLine && this.#isAjaxInterrupted) {
             hooks.doAction(`lcsAjaxResumed${this.#hooksID}`);
+            hooks.doAction(`lcsAjaxRequestResumed`);
             this.#isAjaxInterrupted = false;
         }
 
         while (this.#isRunningAjax) {
-            hooks.doAction(`lcsAjaxBusy${this.#hooksID}`);
+            hooks.doAction(`lcsAjaxIsBusy${this.#hooksID}`);
+            hooks.doAction(`lcsAjaxRequestIsBusy`);
             await new Promise(resolve => setTimeout(resolve, 100)); // Simple throttling
         }
         this.#isRunningAjax = true;
@@ -276,19 +289,23 @@ class lcsAjaxRequest {
                     if (!response.ok) {
                         const error = new Error(responseData?.message || `HTTP error: ${response.status}`);
                         hooks.doAction(`lcsAjaxFailedOnError${this.#hooksID}`, error);
+                        hooks.doAction(`lcsAjaxRequestFailedOnError`);
                         throw error;
                     }
 
                     hooks.doAction(`lcsAjaxSucceeded${this.#hooksID}`, responseData);
+                    hooks.doAction(`lcsAjaxRequestSucceeded`);
                     return responseData;
                 } catch (error) {
                     clearTimeout(timeoutId);
                     if (error.name === 'AbortError') {
                         const timeoutError = new Error('Request timed out.');
-                        hooks.doAction(`lcsAjaxFailedOnError${this.#hooksID}`, timeoutError);
+                        hooks.doAction(`lcsAjaxFailedOnTimeout${this.#hooksID}`, timeoutError);
+                        hooks.doAction(`lcsAjaxRequestFailedOnTimeout`);
                         throw timeoutError;
                     }
                     hooks.doAction(`lcsAjaxFailedOnError${this.#hooksID}`, error);
+                    hooks.doAction(`lcsAjaxRequestFailedOnError`);
                     throw error;
                 }
             } else if (this.#model === 'xhr') {
@@ -317,10 +334,12 @@ class lcsAjaxRequest {
                             }
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 hooks.doAction(`lcsAjaxSucceeded${this.#hooksID}`, responseData);
+                                hooks.doAction(`lcsAjaxRequestSucceeded`);
                                 resolve(responseData);
                             } else {
                                 const error = new Error(responseData?.message || `XHR error: ${xhr.status}`);
                                 hooks.doAction(`lcsAjaxFailedOnError${this.#hooksID}`, error);
+                                hooks.doAction(`lcsAjaxRequestFailedOnError`);
                                 reject(error);
                             }
                         }
@@ -329,12 +348,14 @@ class lcsAjaxRequest {
                     xhr.onerror = () => {
                         const error = new Error('Network error during XHR request.');
                         hooks.doAction(`lcsAjaxFailedOnError${this.#hooksID}`, error);
+                        hooks.doAction(`lcsAjaxRequestFailedOnError`);
                         reject(error);
                     };
 
                     xhr.ontimeout = () => {
                         const error = new Error('Request timed out.');
                         hooks.doAction(`lcsAjaxFailedOnTimeout${this.#hooksID}`, error);
+                        hooks.doAction(`lcsAjaxRequestFailedOnTimeout`);
                         reject(error);
                     };
 
@@ -349,11 +370,13 @@ class lcsAjaxRequest {
             } else {
                 const error = new Error(`Unknown request model: ${this.#model}`);
                 hooks.doAction(`lcsAjaxFailedOnInvalidModel${this.#hooksID}`, error);
+                hooks.doAction(`lcsAjaxRequestFailedOnInvalidModel`);
                 throw error;
             }
         } finally {
             this.#isRunningAjax = false;
             hooks.doAction(`lcsAjaxCompleted${this.#hooksID}`);
+            hooks.doAction(`lcsAjaxRequestCompleted`);
         }
     }
 
@@ -469,11 +492,9 @@ class lcsAjaxRequest {
      */
     async validateNonce(nonceName = this.#nonce_name, url = this.#nonce_url, isNonceRetrieval = this.#isNonceRetrieval) {
         return new Promise((resolve, reject) => {
-            const isFormData = this.isFormData();
-
-            if (isFormData && this.#data.has('nonce_name')) {
+            if (this.isFormData() && this.#data.has('nonce_name')) {
                 nonceName = this.#data.get('nonce_name');
-            } else if (!isFormData && this.#data && 'nonce_name' in this.#data) {
+            } else if (!this.isFormData() && this.#data && 'nonce_name' in this.#data) {
                 nonceName = this.#data.nonce_name;
             }
 
@@ -489,7 +510,7 @@ class lcsAjaxRequest {
             const handleResponse = (responseData) => {
                 if (responseData.success) {
                     const nonce = responseData.data;
-                    if (isFormData) {
+                    if (this.isFormData()) {
                         this.#data.append('nonce', nonce);
                         this.#data.append('nonce_name', this.#nonce_name);
                     } else {
@@ -624,5 +645,5 @@ class lcsAjaxRequest {
  *
  * @module ajaxRequest
  */
-export const ajaxRequest = new lcsAjaxRequest();
+export const ajaxRequest = new lcsAjaxRequest(lcs_ajax_object.ajaxurl, 'POST');
 export default lcsAjaxRequest;

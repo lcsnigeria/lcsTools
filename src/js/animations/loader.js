@@ -204,7 +204,7 @@ class lcsLoader
         loaderWrapper.style.position = 'relative';
 
         // Create the loader element itself, based on style
-        const loader = document.createElement(`${ isProgressiveStyle() ? 'progress' : 'div' }`);
+        const loader = document.createElement(`${ this.#isProgressiveStyle() ? 'progress' : 'div' }`);
         loader.className = this.#loaderClassNames();
         if (this.#isProgressiveStyle()) loader.max = '100';
         if (this.#isProgressiveStyle()) loader.value = '0';
