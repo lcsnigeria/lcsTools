@@ -1,6 +1,6 @@
 {
-  "name": "lcsTools",
-  "version": "0.0.1",
+  "name": "@lcsng/tools",
+  "version": "0.0.2",
   "description": "A modular JavaScript utility library designed for scalable, efficient web development.",
   "main": "dist/lt.min.js",
   "files": [
@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "webpack --mode production",
-    "release": "npm run build && standard-version && git push --follow-tags && npm publish"
+    "release": "npm run build && standard-version && git push --follow-tags && npm publish --access public"
   },
   "repository": {
     "type": "git",
@@ -20,7 +20,14 @@
     "javascript",
     "lcs"
   ],
-  "author": "jcfuniverse",
+  "author": "lcsng",
+  "contributors": [
+    {
+      "name": "JCFuniverse",
+      "email": "justicefrewen@gmail.com",
+      "url": "https://lcs.ng/jcfuniverse"
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/lcsnigeria/lcsTools/issues"
