@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.3](https://github.com/lcsnigeria/lcsTools/compare/v0.0.2...v0.0.3) (2025-06-01)
+
+
+### Bug Fixes
+
+* update regenerator-runtime license reference in lt.min.js.LICENSE.txt ([d373d92](https://github.com/lcsnigeria/lcsTools/commit/d373d9204728548a2e88c09a790f0c1256c543c6))
+
 ### [0.0.2](https://github.com/lcsnigeria/lcsTools/compare/v0.0.1...v0.0.2) (2025-05-30)
 
 ### 0.0.1 (2025-05-28)
