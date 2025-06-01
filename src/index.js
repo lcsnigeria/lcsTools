@@ -22,11 +22,13 @@ export * from './js/workingTools/arrayOps.js';
 export * from './js/workingTools/credsAndCodes.js';
 export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';
-export * from './js/workingTools/elementOps.js';
 export * from './js/workingTools/colorOps.js';
 export * from './js/workingTools/urlOps.js';
 export * from './js/locationTools.js';
+
+// Alerts & Logs
 export * from './js/alertsAndLogs/alerts.js';
+export * from './js/alertsAndLogs/confirm.js';
 
 // UI/Element Tools/Manipulation
 export * from './js/workingTools/elementOps/ops.js';

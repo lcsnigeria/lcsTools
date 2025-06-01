@@ -13,6 +13,7 @@
     outline: var(--formInputOutline);
     border: var(--formInputBorder);
     background-color: var(--formInputBG);
+    width: 100%;
 }
 .lcsForm input[type="text"]:focus,
 .lcsForm input[type="password"]:focus,
