@@ -37,9 +37,15 @@
     justify-content: space-between;
     gap: 1rem;
 }
+.lcsForm ._form_title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--formTitleColor, #222);
+}
 .lcsForm ._form_desc {
     color: var(--formDescColor);
     margin: 10px 0;
+    font-size: 15px;
 }
 .lcsForm ._form_note, 
 .lcsForm small, 

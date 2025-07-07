@@ -49,7 +49,7 @@ export function generateConfirmPasswordField() {
     wrapper.innerHTML = `
         <label for="confirm_password">Confirm Password</label>
         <div class="_form_password_wrapper">
-            <input type="password" class="lcsValidatePassword _password_input" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
+            <input type="password" class="_validate_password _password_input" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
             <button type="button" class="_show_hide_password">Show</button>
         </div>
     `;
@@ -59,7 +59,7 @@ export function generateConfirmPasswordField() {
 /**
  * Handles live password validation for forms with class `.lcsForm`.
  * 
- * Validates the password field (with class `.lcsValidatePassword`) in real-time.
+ * Validates the password field (with class `.lcsForm ._validate_password`) in real-time.
  * - Ensures password strength.
  * - Dynamically adds a confirm password field if needed.
  * - Ensures confirm password matches the original password.
@@ -68,12 +68,9 @@ document.addEventListener('input', (event) => {
     const inputTarget = event.target;
 
     // Ensure we're inside the correct form and targeting a password validation input
-    if (
-        inputTarget.closest('.lcsValidatePassword') &&
-        inputTarget.closest('.lcsForm')
-    ) {
+    if (inputTarget.closest('.lcsForm ._validate_password')) {
         const thisForm = inputTarget.closest('.lcsForm');
-        const passwordInputElement = inputTarget.closest('.lcsValidatePassword');
+        const passwordInputElement = inputTarget.closest('.lcsForm ._validate_password');
         const passwordFieldFormGroup = inputTarget.closest('._form_group._password');
 
         const confirmPasswordFieldFormGroup = thisForm.querySelector('._form_group._confirm_password');
