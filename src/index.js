@@ -24,6 +24,7 @@ export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';
 export * from './js/workingTools/colorOps.js';
 export * from './js/workingTools/urlOps.js';
+export * from './js/workingTools/execUtilities.js';
 export * from './js/locationTools.js';
 
 // Alerts & Logs

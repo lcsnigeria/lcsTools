@@ -81,10 +81,21 @@
     gap: 10px;
     margin: 1rem 0;
 }
-.lcsForm ._form_group label {
+.lcsForm label {
     font-weight: 600;
     font-size: 15px;
     color: var(--formLabelColor);
+}
+.lcsForm label:has(._required_field_marker),
+.lcsForm ._label:has(._required_field_marker) {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+.lcsForm ._required_field_marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 /* radio */
 .lcsForm ._radio_options {

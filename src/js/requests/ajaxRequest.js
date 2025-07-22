@@ -241,13 +241,13 @@ class lcsAjaxRequest {
         // Check for internet connectivity
         if (!navigator.onLine) {
             if (!this.#waitOffline) {
-                hooks.doAction(`ajaxRequestFailedOnOffline${this.#hooksID}`);
+                hooks.doAction(`ajaxRequestFailedOnOffline_${this.#hooksID}`);
                 hooks.doAction(`ajaxRequestFailedOnOffline`);
                 throw new Error('No internet connection detected.');
             }
 
             this.#isAjaxInterrupted = true;
-            hooks.doAction(`ajaxRequestIsInterrupted${this.#hooksID}`);
+            hooks.doAction(`ajaxRequestIsInterrupted_${this.#hooksID}`);
             hooks.doAction(`ajaxRequestIsInterrupted`);
 
             // Wait for connection with a timeout and online event listener
@@ -265,7 +265,7 @@ class lcsAjaxRequest {
                         resolve();
                     } else if (timeWaited >= this.maxWaitTime) {
                         window.removeEventListener('online', onlineHandler);
-                        hooks.doAction(`ajaxRequestFailedOnOffline${this.#hooksID}`);
+                        hooks.doAction(`ajaxRequestFailedOnOffline_${this.#hooksID}`);
                         hooks.doAction(`ajaxRequestFailedOnOffline`);
                         reject(new Error('No internet connection after waiting.'));
                     } else {
@@ -279,13 +279,13 @@ class lcsAjaxRequest {
 
         // Trigger resume hook if connection was interrupted
         if (navigator.onLine && this.#isAjaxInterrupted) {
-            hooks.doAction(`ajaxRequestResumed${this.#hooksID}`);
+            hooks.doAction(`ajaxRequestResumed_${this.#hooksID}`);
             hooks.doAction(`ajaxRequestResumed`);
             this.#isAjaxInterrupted = false;
         }
 
         while (this.#isRunningAjax) {
-            hooks.doAction(`ajaxRequestIsBusy${this.#hooksID}`);
+            hooks.doAction(`ajaxRequestIsBusy_${this.#hooksID}`);
             hooks.doAction(`ajaxRequestIsBusy`);
             await new Promise(resolve => setTimeout(resolve, 100)); // Simple throttling
         }
@@ -311,24 +311,24 @@ class lcsAjaxRequest {
                     let responseData = contentType?.includes('application/json') ? await response.json() : await response.text();
 
                     if (!response.ok) {
-                        const error = new Error(responseData?.message || `HTTP error: ${response.status}`);
-                        hooks.doAction(`ajaxRequestFailedOnError${this.#hooksID}`, error);
+                        const error = new Error(responseData?.message || responseData?.data || `HTTP error: ${response.status}`);
+                        hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
                         hooks.doAction(`ajaxRequestFailedOnError`);
                         throw error;
                     }
 
-                    hooks.doAction(`ajaxRequestSucceeded${this.#hooksID}`, responseData);
+                    hooks.doAction(`ajaxRequestSucceeded_${this.#hooksID}`, responseData);
                     hooks.doAction(`ajaxRequestSucceeded`);
                     return responseData;
                 } catch (error) {
                     clearTimeout(timeoutId);
                     if (error.name === 'AbortError') {
                         const timeoutError = new Error('Request timed out.');
-                        hooks.doAction(`ajaxRequestFailedOnTimeout${this.#hooksID}`, timeoutError);
+                        hooks.doAction(`ajaxRequestFailedOnTimeout_${this.#hooksID}`, timeoutError);
                         hooks.doAction(`ajaxRequestFailedOnTimeout`);
                         throw timeoutError;
                     }
-                    hooks.doAction(`ajaxRequestFailedOnError${this.#hooksID}`, error);
+                    hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
                     hooks.doAction(`ajaxRequestFailedOnError`);
                     throw error;
                 }
@@ -357,12 +357,12 @@ class lcsAjaxRequest {
                                 }
                             }
                             if (xhr.status >= 200 && xhr.status < 300) {
-                                hooks.doAction(`ajaxRequestSucceeded${this.#hooksID}`, responseData);
+                                hooks.doAction(`ajaxRequestSucceeded_${this.#hooksID}`, responseData);
                                 hooks.doAction(`ajaxRequestSucceeded`);
                                 resolve(responseData);
                             } else {
-                                const error = new Error(responseData?.message || `XHR error: ${xhr.status}`);
-                                hooks.doAction(`ajaxRequestFailedOnError${this.#hooksID}`, error);
+                                const error = new Error(responseData?.message || responseData?.data || `XHR error: ${xhr.status}`);
+                                hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
                                 hooks.doAction(`ajaxRequestFailedOnError`);
                                 reject(error);
                             }
@@ -371,14 +371,14 @@ class lcsAjaxRequest {
 
                     xhr.onerror = () => {
                         const error = new Error('Network error during XHR request.');
-                        hooks.doAction(`ajaxRequestFailedOnError${this.#hooksID}`, error);
+                        hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
                         hooks.doAction(`ajaxRequestFailedOnError`);
                         reject(error);
                     };
 
                     xhr.ontimeout = () => {
                         const error = new Error('Request timed out.');
-                        hooks.doAction(`ajaxRequestFailedOnTimeout${this.#hooksID}`, error);
+                        hooks.doAction(`ajaxRequestFailedOnTimeout_${this.#hooksID}`, error);
                         hooks.doAction(`ajaxRequestFailedOnTimeout`);
                         reject(error);
                     };
@@ -393,13 +393,13 @@ class lcsAjaxRequest {
                 });
             } else {
                 const error = new Error(`Unknown request model: ${this.#model}`);
-                hooks.doAction(`ajaxRequestFailedOnInvalidModel${this.#hooksID}`, error);
+                hooks.doAction(`ajaxRequestFailedOnInvalidModel_${this.#hooksID}`, error);
                 hooks.doAction(`ajaxRequestFailedOnInvalidModel`);
                 throw error;
             }
         } finally {
             this.#isRunningAjax = false;
-            hooks.doAction(`ajaxRequestCompleted${this.#hooksID}`);
+            hooks.doAction(`ajaxRequestCompleted_${this.#hooksID}`);
             hooks.doAction(`ajaxRequestCompleted`);
         }
     }

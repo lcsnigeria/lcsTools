@@ -190,6 +190,9 @@ document.addEventListener("submit", async (event) => {
       // SELECT (multiple support)
       else if (lcTag === 'select' && field.selectedOptions.length) {
         value = Array.from(field.selectedOptions, opt => opt.value);
+        if (Array.isArray(value) && value.length === 1) {
+          value = value[0];
+        }
       }
 
       // PILL/DROPDOWN JSON
@@ -210,7 +213,7 @@ document.addEventListener("submit", async (event) => {
       }
 
       // DEFAULT INPUT / TEXTAREA
-      else {
+      else if (lcTag === 'textarea' || lcTag === 'input') {
         const txt = field.value.trim();
         if (txt) value = txt;
       }
