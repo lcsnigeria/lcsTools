@@ -87,7 +87,15 @@ const extensionMimeType = {
     yml:   '',
     yaml:  '',
     ini:   '',
-    env:   ''
+    env:   '',
+
+    // Archives and compressed files
+    zip:  'application/zip,application/x-zip-compressed',
+    rar:  'application/x-rar-compressed',
+    tar:  'application/x-tar',
+    gz:   'application/gzip',
+    targz: 'application/gzip',
+    '7z':   'application/x-7z-compressed',
 };
 
 /**
@@ -305,16 +313,23 @@ class lcsFileOps {
     /**
      * Gets the MIME type from a file extension.
      * @param {string} extension - File extension (with or without leading dot)
-     * @returns {string} MIME type, or 'application/octet-stream' if unknown
+     * @returns {string|Array} The MIME type or an array of MIME types if multiple types exist
      * @example
      * const fileOps = new lcsFileOps();
      * console.log(fileOps.getExtensionMimeType('jpg')); // 'image/jpeg'
      * console.log(fileOps.getExtensionMimeType('.pdf')); // 'application/pdf'
      * console.log(fileOps.getExtensionMimeType('xyz')); // 'application/octet-stream'
+     * console.log(fileOps.getExtensionMimeType('zip')); // ['application/zip', 'application/x-zip-compressed']
      */
     getExtensionMimeType(extension) {
         extension = extension.toLowerCase().replace(/^\./, '');
         const type = extensionMimeType[extension];
+
+        // If type has comma-separated values, split and return as array
+        if (type && type.includes(',')) {
+            return type.split(',').map(t => t.trim());
+        }
+
         return type === '' ? '' : (type || 'application/octet-stream');
     }
 

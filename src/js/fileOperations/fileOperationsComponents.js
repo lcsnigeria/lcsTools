@@ -432,3 +432,21 @@ export const textFileExtensions = [
     'yaml',   // YAML configuration
     'yml'     // YAML configuration
 ];
+
+/** * An array of file extensions that are commonly used for archive and compressed files.
+ * These extensions are typically used for bundling multiple files into a single file,
+ * often with compression to reduce size.
+ *
+ * @type {string[]}
+ * @example
+ * console.log(archiveFileExtensions.includes('zip')); // true
+ * console.log(archiveFileExtensions.includes('txt')); // false
+ */
+export const archiveFileExtensions = [
+    'zip',   // ZIP archive
+    'rar',   // RAR archive
+    'tar',   // TAR archive
+    'gz',    // GZIP archive
+    'targz', // GZIP archive (tarball)
+    '7z',    // 7-Zip archive
+];

@@ -20,29 +20,31 @@
 
     <!-- Separate module block to use selectFiles -->
     <script type="module">
-        import '../../js/uiAndElementManipulation/horizontalScrolling.js';
+        import '../../js/workingTools/elementOps/uiAndElementManipulation/horizontalScrolling.js';
         import { selectFiles } from './fileSelection.js'; // adjust path as needed
 
-        const uploadButton = document.getElementById('uploadButton');
-        const selectedFilesDiv = document.getElementById('selectedFiles');
+        document.addEventListener("DOMContentLoaded", () => {
+            const uploadButton = document.getElementById('uploadButton');
+            const selectedFilesDiv = document.getElementById('selectedFiles');
 
-        selectFiles(uploadButton, {
-            multiple: true,
-            fileTypes: ['image', 'pdf'],
-            maxFileSize: 10 * 1024 * 1024, // 10MB
-            maxFileCount: 3,
-            imageAspectRatio: ['16:9', '4:3', '4:5'],
-            filePreview: true,
-            filePreviewPosition: 'top',
-            fileChooserTriger: '#uploadButton',
-            required: true,
-            fileSelectedCallback: (files) => {
-                selectedFilesDiv.innerHTML = '<h3>Selected Files:</h3>';
-                files.forEach(file => {
-                    selectedFilesDiv.innerHTML += `<p>${file.name} (${file.type}, ${file.size} bytes)</p>`;
-                });
-            }
-        });
+            selectFiles(uploadButton, {
+                multiple: true,
+                fileTypes: ['archive'] /*['image', 'pdf'] */,
+                maxFileSize: 10 * 1024 * 1024, // 10MB
+                maxFileCount: 3,
+                imageAspectRatio: ['16:9', '4:3', '4:5'],
+                filePreview: true,
+                filePreviewPosition: 'top',
+                fileChooserTriger: '#uploadButton',
+                required: true,
+                fileSelectedCallback: (files) => {
+                    selectedFilesDiv.innerHTML = '<h3>Selected Files:</h3>';
+                    files.forEach(file => {
+                        selectedFilesDiv.innerHTML += `<p>${file.name} (${file.type}, ${file.size} bytes)</p>`;
+                    });
+                }
+            });
+        })
     </script>
 </body>
 </html>

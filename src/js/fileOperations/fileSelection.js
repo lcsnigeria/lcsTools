@@ -10,6 +10,7 @@ import { generateCodes } from "../workingTools/credsAndCodes.js";
 import { file as fileOps } from "./file.js";
 import { alert as lcsAlert } from '../alertsAndLogs/alerts.js';
 import { initializeFontAwesome } from "../initializations/fontAwesome.js";
+import { archiveFileExtensions } from "./fileOperationsComponents.js";
 
 /**
  * Load Font Awesome Icons
@@ -158,10 +159,17 @@ const validFileTypes = Object.keys(validFileTypeData);
  * console.log(isMimeTypeDoc('application/pdf')); // false
  */
 const isMimeTypeDoc = (mimeType) => {
+    archiveFileExtensions.forEach(ext => {
+        if (mimeType.includes(ext)) {
+            return false;
+        }
+    });
+
     const wordMimeTypes = [
         'application/msword', // .doc
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
     ];
+    
     return wordMimeTypes.includes(mimeType);
 };
 
@@ -230,7 +238,7 @@ const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
  * @param {number} [configs.totalMaxFileSize=1073741824] - Maximum total size for all selected files in bytes (default: 1GB).
  * @param {number} [configs.totalMinFileSize=0] - Minimum total size for all selected files in bytes (default: 0).
  * @param {number} [configs.maxFileCount=10] - Maximum number of files that can be selected (default: 10).
- * @param {HTMLElement|string|null} [configs.fileChooserTriger=null] - Element or selector (e.g., '#id', '.class') to trigger the file input dialog.
+ * @param {HTMLElement|string|null} [configs.fileChooserTrigger=null] - Element or selector (e.g., '#id', '.class') to trigger the file input dialog.
  * @param {boolean} [configs.playOnPreview=false] - If true, enables playback or interactivity for media previews.
  * @param {boolean} [configs.required=false] - If true, marks the file input as required, enforcing selection.
  * @throws {Error} If the control element is invalid, configurations are incorrect, file validations fail, or maximum file count is reached.
@@ -242,7 +250,7 @@ const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
  *   maxFileSize: 10 * 1024 * 1024, // 10MB
  *   maxFileCount: 5,
  *   fileSelectedCallback: (files) => console.log('Selected files:', files),
- *   fileChooserTriger: '#uploadButton'
+ *   fileChooserTrigger: '#uploadButton'
  * });
  *
  * @example
@@ -272,7 +280,7 @@ export async function selectFiles(elementInControl, configs = {}) {
         totalMaxFileSize: 1024 * 1024 * 1000, // 1GB
         totalMinFileSize: 0,
         maxFileCount: 10,
-        fileChooserTriger: null,
+        fileChooserTrigger: null,
         playOnPreview: false,
         required: false
     };
@@ -294,6 +302,11 @@ export async function selectFiles(elementInControl, configs = {}) {
         inputElement = document.createElement('input');
         inputElement.type = 'file';
         inputElement.style.display = 'none';
+
+        // Only set as trigger if not already provided
+        if (!configs.fileChooserTrigger) {
+            configs.fileChooserTrigger = elementInControl;
+        }
     }
 
     inputElement.classList.add('lcsFileSelection');
@@ -344,7 +357,7 @@ export async function selectFiles(elementInControl, configs = {}) {
         }
         specifiedFileTypes = filterObjectValuesByKeys(validFileTypeData, configs.fileTypes).join(',').toLowerCase();
     }
-    if (specifiedFileTypes) {
+    if (!isDataEmpty(specifiedFileTypes)) {
         inputElement.setAttribute('accept', specifiedFileTypes);
     } else {
         inputElement.removeAttribute('accept');
@@ -430,16 +443,23 @@ export async function selectFiles(elementInControl, configs = {}) {
 
         // Filter by allowed MIME types
         fileData = fileData.filter((fd) => {
-            const normalizedSFT = specifiedFileTypesArray
+            let normalizedSFT = specifiedFileTypesArray
                 .map((sft) => {
                     if (sft === 'image/*') return 'image';
                     if (sft === 'video/*') return 'video';
                     if (sft === 'audio/*') return 'audio';
-                    if (fileOps.isExtension(fd.file, sft)) return fileOps.getExtensionMimeType(sft);
-                    if (fileOps.isMimeType(fd.file, sft)) return sft;
+                    if (fileOps.isExtension(sft)) return fileOps.getExtensionMimeType(sft);
+                    if (fileOps.isMimeType(sft)) return sft;
                     return null;
                 })
                 .filter(Boolean);
+
+            // For each normalizedSFT item, check comma-separated values and split them
+            normalizedSFT = normalizedSFT.flatMap((sft) =>
+                Array.isArray(sft)
+                    ? sft.flatMap((innerSFT) => innerSFT.split(',').map((_type) => _type.trim()))
+                    : sft.split(',').map((type) => type.trim())
+            );
 
             const isAllowed = (normalizedSFT.includes('image') && fileOps.isImage(fd.file)) 
             || (normalizedSFT.includes('video') && fileOps.isVideo(fd.file)) 
@@ -585,6 +605,8 @@ export async function selectFiles(elementInControl, configs = {}) {
                 const thisFile = fd.file;
                 const trackingID = fd.tracking_id;
                 const isMedia = await fileOps.isMedia(thisFile);
+                const isTextDocFile = await fileOps.isExtensionTextDoc(thisFile);
+                
                 try {
                     if (isMedia) {
                         await previewMediaFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
@@ -592,7 +614,7 @@ export async function selectFiles(elementInControl, configs = {}) {
                         await previewPDFFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
                     } else if (isDOCXFileType(thisFile)) {
                         await previewDOCXFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
-                    } else if (fileOps.isExtensionTextDoc(fd.name)) {
+                    } else if (isTextDocFile) {
                         await previewTextDocFile(thisFile, trackingID, configs.playOnPreview, filePreviewWrapper);
                     } else {
                         const filePreview = document.createElement('div');
@@ -631,23 +653,23 @@ export async function selectFiles(elementInControl, configs = {}) {
     }
 
     // Set up file chooser dialog trigger if provided
-    if (!isDataEmpty(configs.fileChooserTriger)) {
-        if (!(configs.fileChooserTriger instanceof HTMLElement)) {
-            const isClassNameSelector = (typeof configs.fileChooserTriger === 'string') && configs.fileChooserTriger.startsWith('.');
-            const isIDSelector = (typeof configs.fileChooserTriger === 'string') && configs.fileChooserTriger.startsWith('#');
+    if (!isDataEmpty(configs.fileChooserTrigger)) {
+        if (!(configs.fileChooserTrigger instanceof HTMLElement)) {
+            const isClassNameSelector = (typeof configs.fileChooserTrigger === 'string') && configs.fileChooserTrigger.startsWith('.');
+            const isIDSelector = (typeof configs.fileChooserTrigger === 'string') && configs.fileChooserTrigger.startsWith('#');
     
             if (isClassNameSelector || isIDSelector) {
-                configs.fileChooserTriger = document.querySelector(configs.fileChooserTriger);
+                configs.fileChooserTrigger = document.querySelector(configs.fileChooserTrigger);
     
-                if (!(configs.fileChooserTriger instanceof HTMLElement)) {
+                if (!(configs.fileChooserTrigger instanceof HTMLElement)) {
                     throw new Error("The selector did not match any DOM element.");
                 }
             } else {
-                throw new Error("Invalid fileChooserTriger: must be an HTMLElement, ID selector (#id), or class selector (.class).");
+                throw new Error("Invalid fileChooserTrigger: must be an HTMLElement, ID selector (#id), or class selector (.class).");
             }
         }
     
-        configs.fileChooserTriger.addEventListener('click', () => {
+        configs.fileChooserTrigger.addEventListener('click', () => {
             inputElement.click();
         });
     }
