@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.10](https://github.com/lcsnigeria/lcsTools/compare/v0.0.9...v0.0.10) (2025-07-27)
+
+
+### Features
+
+* Add support for archive and compressed file types ([9e9d812](https://github.com/lcsnigeria/lcsTools/commit/9e9d812fc612d41e2a784d1fa453ff76491f587e))
+* Enhance file selection functionality with text document checks and duplicate prevention ([9888051](https://github.com/lcsnigeria/lcsTools/commit/9888051cd04cb194d1abbbf504e07e0fbcaa1d4f))
+
 ### [0.0.9](https://github.com/lcsnigeria/lcsTools/compare/v0.0.8...v0.0.9) (2025-07-23)
 
 ### [0.0.8](https://github.com/lcsnigeria/lcsTools/compare/v0.0.7...v0.0.8) (2025-07-22)
