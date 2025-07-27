@@ -200,6 +200,14 @@ const isDOCXFileType = (file) => {
 };
 
 
+/**
+ * Checks if a given file extension or MIME type is included in the list of text document extensions.
+ * This function iterates through the provided extensions or MIME types,
+ * and returns true if any of them match the text document criteria.
+ * 
+ * @param {string|string[]} extOrTypes - A single file extension or MIME type, or an array of them.
+ * @return {boolean} True if any of the provided extensions or MIME types match text document criteria, false otherwise.
+ */
 const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
     extOrTypes = Array.isArray(extOrTypes) ? extOrTypes : [extOrTypes];
     extOrTypes.forEach(extt => {
@@ -226,6 +234,7 @@ const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
  * @param {Object} [configs={}] - Configuration options for file selection, validation, and preview generation.
  * @param {string} [configs.name='files'] - Name attribute for the file input element. Automatically adjusted to avoid conflicts.
  * @param {boolean} [configs.multiple=false] - If true, allows multiple file selection; otherwise, restricts to a single file.
+ * @param {boolean} [configs.allowDuplicate] - If true, allows duplicate files to be selected (default: true).
  * @param {boolean} [configs.useCustomFileTypes=false] - If true, treats `fileTypes` as a custom string (e.g., '.php,image/*').
  * @param {string[]|string} [configs.fileTypes=[]] - Array of valid file type categories (e.g., ['image', 'pdf']) or a custom string if `useCustomFileTypes` is true.
  * @param {string|string[]} [configs.imageAspectRatio=[]] - Allowed image aspect ratios (e.g., '16:9', ['16:9', '4:3']).
@@ -267,12 +276,12 @@ export async function selectFiles(elementInControl, configs = {}) {
     const defaultConfigs = {
         name: 'files',
         multiple: false,
+        allowDuplicate: true,
         useCustomFileTypes: false,
         fileTypes: [],
         imageAspectRatio: [],
         videoAspectRatio: [],
         fileSelectedCallback: null,
-        noFileSelectedCallback: null,
         filePreview: true,
         filePreviewPosition: 'top',
         maxFileSize: 1024 * 1024 * 100, // 100MB
@@ -297,9 +306,25 @@ export async function selectFiles(elementInControl, configs = {}) {
     let inputElementIsNew = false;
     if (elementInControl.tagName.toLowerCase() === 'input' && elementInControl.type === 'file') {
         inputElement = elementInControl;
+
+        if (!inputElement.hasAttribute('name') || isDataEmpty(inputElement.getAttribute('name'))) {
+            if (isDataEmpty(configs.name)) {
+                throw new Error('Input name is required and cannot be empty.');
+            }
+        }
     } else {
+        if (isDataEmpty(configs.name)) {
+            throw new Error('Input name is required and cannot be empty.');
+        }
+
         inputElementIsNew = true;
-        inputElement = document.createElement('input');
+
+        inputElement = document.querySelector(`input.lcsFileSelection[name="${configs.name}"]`);
+        if (!inputElement) {
+            inputElement = document.createElement('input');
+            inputElement.setAttribute('name', configs.name);
+        }
+
         inputElement.type = 'file';
         inputElement.style.display = 'none';
 
@@ -314,20 +339,20 @@ export async function selectFiles(elementInControl, configs = {}) {
     // Configure input name
     // Clear configs.name off posible square brackets 
     // And set to the inputElement
-    if (!inputElement.hasAttribute('name') || isDataEmpty(inputElement.getAttribute('name'))) {
-        if (isDataEmpty(configs.name)) {
-            throw new Error('Input name is required and cannot be empty.');
-        }
-    } else {
-        configs.name = inputElement.getAttribute('name');
-    }
-    configs.name = configs.name.replace(/\[\]/g, '');
-    let nameSuffixCounter = 1;
-    while (document.querySelector(`input.lcsFileSelection[name="${configs.name}"]`)) {
-        configs.name = `${configs.name}_${nameSuffixCounter}`;
-        nameSuffixCounter++;
-    } 
-    inputElement.name = configs.name;
+    // if (!inputElement.hasAttribute('name') || isDataEmpty(inputElement.getAttribute('name'))) {
+    //     if (isDataEmpty(configs.name)) {
+    //         throw new Error('Input name is required and cannot be empty.');
+    //     }
+    // } else {
+    //     configs.name = inputElement.getAttribute('name');
+    // }
+    // configs.name = configs.name.replace(/\[\]/g, '');
+    // let nameSuffixCounter = 1;
+    // while (document.querySelector(`input.lcsFileSelection[name="${configs.name}"]`)) {
+    //     configs.name = `${configs.name}_${nameSuffixCounter}`;
+    //     nameSuffixCounter++;
+    // } 
+    // inputElement.name = configs.name;
 
     // Configure multiple attribute
     if (configs.multiple) {
@@ -398,22 +423,52 @@ export async function selectFiles(elementInControl, configs = {}) {
         && Object.keys(window.lcsFileSelection.files[configs.name]).length > 0;
     }
 
-    // Function to check if max file count is reached
-    const isMaxFileCountReached = () => {
-        const configFileCount = isDataEmpty(configs.maxFileCount) ? 10 : parseInt(configs.maxFileCount, 10);
-        const fileCount = !isDataEmpty(window.lcsFileSelection.files[configs.name]) 
-        ? parseInt(Object.keys(window.lcsFileSelection.files[configs.name]).length, 10) : 0;
-        return fileCount >= configFileCount;
+    /**
+     * Checks if the maximum file count has been reached based on the current selection and already selected files.
+     * @param {Object} fileData - The object of files being selected in this event.
+     * @returns {boolean} True if the maximum file count is reached, false otherwise.
+     */
+    const isMaxFileCountReached = (fileData) => {
+        if (!configs.maxFileCount || configs.maxFileCount <= 0) return false; // No limit set
+        if (!configs.multiple) configs.maxFileCount = 1; // If not multiple, max count is 1
+
+        // Get already selected files for this input name
+        const alreadySelected = window.lcsFileSelection.files[configs.name]
+            ? Object.values(window.lcsFileSelection.files[configs.name])
+            : [];
+        const newFilesCount = fileData && typeof fileData === 'object'
+            ? Object.keys(fileData).length
+            : 0;
+        const totalCount = alreadySelected.length + newFilesCount;
+
+        // Effectiveness: Only count files for this input name
+        if (totalCount > configs.maxFileCount) {
+            maxFileCountReached = true;
+            return true;
+        }
+        return false;
+    }
+    let maxFileCountReached = false;
+
+    /**
+     * Checks if a file is already present in the files object.
+     * @param {File} file - The file to check.
+     * @param {Object} filesObj - The object containing file data.
+     * @returns {boolean} True if the file is already in the object, false otherwise.
+     */
+    const fileAlreadyInObject = (file, filesObj) => {
+        if (!filesObj || typeof filesObj !== 'object') return false;
+        return Object.values(filesObj).some(fd => {
+            // Compare by name, size, and type for best match
+            return fd.file &&
+                fd.file.name === file.name &&
+                fd.file.size === file.size &&
+                fd.file.type === file.type;
+        });
     }
 
     // Handle file selection
     inputElement.addEventListener('change', async (event) => {
-        if (isMaxFileCountReached()) {
-            inputElement.value = '';
-            lcsAlert.send('You have reached the maximum number of allowed files.', 'error');
-            throw new Error("File selection limit reached.");
-        }
-
         if (configs.multiple !== true && alreadySelectedFile()) {
             inputElement.value = '';
             lcsAlert.send('You can only select one file.', 'error');
@@ -422,14 +477,6 @@ export async function selectFiles(elementInControl, configs = {}) {
 
         // Get and build file data
         const selectedFiles = configs.multiple === true ? Array.from(event.target.files) : [event.target.files[0]].filter(Boolean);
-
-        // If no file selected
-        if (selectedFiles.length === 0) {
-            if (configs.noFileSelectedCallback) {
-                configs.noFileSelectedCallback();
-            }
-            return;
-        }
 
         // Prepare file data
         let fileData = await Promise.all(
@@ -440,6 +487,14 @@ export async function selectFiles(elementInControl, configs = {}) {
                 file,
             }))
         );
+
+        // Check if the maximum file count is reached
+        if (isMaxFileCountReached(fileData)) {
+            maxFileCountReached = true;
+            inputElement.value = '';
+            lcsAlert.send('You have reached the maximum number of allowed files.', 'error');
+            throw new Error("File selection limit reached.");
+        }
 
         // Filter by allowed MIME types
         fileData = fileData.filter((fd) => {
@@ -564,6 +619,23 @@ export async function selectFiles(elementInControl, configs = {}) {
         fileData.forEach((fd) => {
             const trackingID = generateCodes('letters', 8);
             fd.tracking_id = trackingID;
+
+            // Check if the file already exists in the lcsFileSelection files object
+            if (!configs.allowDuplicate && fileAlreadyInObject(fd.file, window.lcsFileSelection.files[configs.name])) {
+                if (fileData.length <= 1) {
+                    throw new Error(`File "${fd.name}" is already selected. Duplicates are not allowed.`);
+                } else {
+                    console.warn(`File "${fd.name}" is already selected. Duplicates are not allowed.`);
+                    return; // Skip adding this file
+                }
+            }
+
+            // Ensure the files object exists for the current input name
+            if (!window.lcsFileSelection.files[configs.name]) {
+                window.lcsFileSelection.files[configs.name] = {};
+            }
+
+            // Store the file data with the tracking ID
             window.lcsFileSelection.files[configs.name][trackingID] = fd;
         });
 
@@ -624,7 +696,7 @@ export async function selectFiles(elementInControl, configs = {}) {
                         filePreview.dataset.ftid = trackingID;
                         // Escape file name to prevent XSS
                         const escapedName = fd.name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        filePreview.innerHTML = `<span>${escapedName}</span>`;
+                        filePreview.innerHTML = `<i class="fa fa-times _remove_file _remove_icon" title="Remove file"></i><span>${escapedName}</span>`;
                         filePreviewWrapper.appendChild(filePreview);
                     }
                 } catch (error) {
@@ -645,6 +717,8 @@ export async function selectFiles(elementInControl, configs = {}) {
         if (configs.fileSelectedCallback) {
             configs.fileSelectedCallback(configs.multiple ? fileData : fileData[0]);
         }
+
+        inputElement.value = ''; // Clear input value to allow re-selection...
     });
 
     // Append new input element if created
@@ -653,14 +727,14 @@ export async function selectFiles(elementInControl, configs = {}) {
     }
 
     // Set up file chooser dialog trigger if provided
-    if (!isDataEmpty(configs.fileChooserTrigger)) {
+    if (configs.fileChooserTrigger) {
         if (!(configs.fileChooserTrigger instanceof HTMLElement)) {
             const isClassNameSelector = (typeof configs.fileChooserTrigger === 'string') && configs.fileChooserTrigger.startsWith('.');
             const isIDSelector = (typeof configs.fileChooserTrigger === 'string') && configs.fileChooserTrigger.startsWith('#');
-    
+
             if (isClassNameSelector || isIDSelector) {
                 configs.fileChooserTrigger = document.querySelector(configs.fileChooserTrigger);
-    
+
                 if (!(configs.fileChooserTrigger instanceof HTMLElement)) {
                     throw new Error("The selector did not match any DOM element.");
                 }
@@ -668,14 +742,15 @@ export async function selectFiles(elementInControl, configs = {}) {
                 throw new Error("Invalid fileChooserTrigger: must be an HTMLElement, ID selector (#id), or class selector (.class).");
             }
         }
-    
+
         configs.fileChooserTrigger.addEventListener('click', () => {
             inputElement.click();
         });
     }
 
+    
     // Hide inputElement if max file count reached
-    if (isMaxFileCountReached() || (configs.multiple !== true && alreadySelectedFile())) {
+    if (maxFileCountReached || (configs.multiple !== true && alreadySelectedFile())) {
         inputElement.classList.add('_max_file_count_reached');
         inputElement.style.display = 'none';
     }
@@ -1017,7 +1092,14 @@ document.addEventListener('click', (event) => {
         const fileToRemoveName = fileEntry.name;
 
         // Delete the file from tracking and remove the preview from the DOM
-        delete window.lcsFileSelection.files[fileTrackingName][fileTrackingID];
+        if (Object.keys(window.lcsFileSelection.files[fileTrackingName]).length <= 1) {
+            // If this is the last file, remove the entire tracking object
+            delete window.lcsFileSelection.files[fileTrackingName];
+        } else {
+            // Otherwise, just remove the specific file entry
+            delete window.lcsFileSelection.files[fileTrackingName][fileTrackingID];
+        }
+        
         fileToRemove.remove();
 
         // Notify the user of successful removal
