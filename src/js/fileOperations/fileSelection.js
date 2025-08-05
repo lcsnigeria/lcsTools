@@ -11,6 +11,8 @@ import { file as fileOps } from "./file.js";
 import { alert as lcsAlert } from '../alertsAndLogs/alerts.js';
 import { initializeFontAwesome } from "../initializations/fontAwesome.js";
 import { archiveFileExtensions } from "./fileOperationsComponents.js";
+import { validateElement } from "../workingTools/elementOps/ops.js";
+import { hooks } from "../hooks.js";
 
 /**
  * Load Font Awesome Icons
@@ -230,7 +232,7 @@ const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
  * and interactive previews.
  *
  * @async
- * @param {HTMLElement} elementInControl - The HTML element controlling the file input (e.g., a button or existing file input).
+ * @param {HTMLElement|string} elementInControl - The HTML element (or its selector) controlling the file input (e.g., a button or any other element, existing file input, or selector string of these).
  * @param {Object} [configs={}] - Configuration options for file selection, validation, and preview generation.
  * @param {string} [configs.name='files'] - Name attribute for the file input element. Automatically adjusted to avoid conflicts.
  * @param {boolean} [configs.multiple=false] - If true, allows multiple file selection; otherwise, restricts to a single file.
@@ -241,12 +243,14 @@ const isFileTypesIncludesTextDocExtension = (extOrTypes) => {
  * @param {string|string[]} [configs.videoAspectRatio=[]] - Allowed video aspect ratios (e.g., '16:9', ['16:9', '4:3']).
  * @param {Function|null} [configs.fileSelectedCallback=null] - Callback invoked with an array of selected file data (or a single file object if `multiple` is false).
  * @param {boolean} [configs.filePreview=true] - If true, generates previews for supported file types.
- * @param {string} [configs.filePreviewPosition='top'] - Position of the preview container relative to the control element ('top' or 'bottom').
+ * @param {HTMLElement|string|null} [configs.filePreviewLocation=null] - Element or selector (e.g., '#id', '.class') where the preview will be displayed. If not provided, uses `elementInControl`.
+ * @param {string} [configs.filePreviewPosition='top'] - Position of the preview container relative to the control element ('top', 'bottom' or 'inside').
  * @param {number} [configs.maxFileSize=104857600] - Maximum size per file in bytes (default: 100MB).
  * @param {number} [configs.minFileSize=0] - Minimum size per file in bytes (default: 0).
  * @param {number} [configs.totalMaxFileSize=1073741824] - Maximum total size for all selected files in bytes (default: 1GB).
  * @param {number} [configs.totalMinFileSize=0] - Minimum total size for all selected files in bytes (default: 0).
  * @param {number} [configs.maxFileCount=10] - Maximum number of files that can be selected (default: 10).
+ * @param {boolean} [configs.setFileChooserTrigger=true] - If true, sets `fileChooserTrigger` to `elementInControl` if not already provided.
  * @param {HTMLElement|string|null} [configs.fileChooserTrigger=null] - Element or selector (e.g., '#id', '.class') to trigger the file input dialog.
  * @param {boolean} [configs.playOnPreview=false] - If true, enables playback or interactivity for media previews.
  * @param {boolean} [configs.required=false] - If true, marks the file input as required, enforcing selection.
@@ -283,23 +287,24 @@ export async function selectFiles(elementInControl, configs = {}) {
         videoAspectRatio: [],
         fileSelectedCallback: null,
         filePreview: true,
+        filePreviewLocation: null, // If not provided, will use elementInControl or create a new preview container.
         filePreviewPosition: 'top',
         maxFileSize: 1024 * 1024 * 100, // 100MB
         minFileSize: 0,
         totalMaxFileSize: 1024 * 1024 * 1000, // 1GB
         totalMinFileSize: 0,
         maxFileCount: 10,
+        setFileChooserTrigger: true, // If true, sets fileChooserTrigger to elementInControl if not already provided
         fileChooserTrigger: null,
         playOnPreview: false,
-        required: false
+        required: false,
+        returnInputElement: false // Better name: returnInputElement
     };
 
     configs = { ...defaultConfigs, ...configs };
 
     // Validate control element
-    if (!elementInControl || !(elementInControl instanceof HTMLElement)) {
-        throw new Error('Invalid control element. Please provide a valid HTMLElement.');
-    }
+    elementInControl = validateElement(elementInControl);
 
     // Create or use input element
     let inputElement;
@@ -312,24 +317,34 @@ export async function selectFiles(elementInControl, configs = {}) {
                 throw new Error('Input name is required and cannot be empty.');
             }
         }
+
+        // If preview is true and preview position is 'inside', throw error that preview position can not be 'inside' for an input elements
+        if (configs.filePreview && configs.filePreviewPosition === 'inside') {
+            throw new Error('Preview position "inside" is not supported for input elements. Please use "top" or "bottom".');
+        }
     } else {
         if (isDataEmpty(configs.name)) {
             throw new Error('Input name is required and cannot be empty.');
         }
 
-        inputElementIsNew = true;
-
-        inputElement = document.querySelector(`input.lcsFileSelection[name="${configs.name}"]`);
-        if (!inputElement) {
-            inputElement = document.createElement('input');
-            inputElement.setAttribute('name', configs.name);
+        const maybe_lcsForm = elementInControl.closest('.lcsForm');
+        if (!maybe_lcsForm) {
+            throw new Error('The provided element is not within an lcsForm context. Please ensure it is inside a form with classname "lcsForm" as it is required if elementInControl is not an input element.');
         }
 
+        // Check if input already exists with the same name
+        inputElement = maybe_lcsForm.querySelector(`input.lcsFileSelection[name="${configs.name}"]`);
+        if (!inputElement) {
+            inputElement = document.createElement('input');
+            inputElementIsNew = true;
+        }
+
+        inputElement.setAttribute('name', configs.name);
         inputElement.type = 'file';
         inputElement.style.display = 'none';
 
         // Only set as trigger if not already provided
-        if (!configs.fileChooserTrigger) {
+        if (configs.setFileChooserTrigger === true && !configs.fileChooserTrigger) {
             configs.fileChooserTrigger = elementInControl;
         }
     }
@@ -643,14 +658,20 @@ export async function selectFiles(elementInControl, configs = {}) {
         if (configs.filePreview) {
 
             // The File Preview Container
-            let filePreviewContainer = elementInControl.parentElement.querySelector('.lcsFileSelectionPreview._file_preview_container');
+            let filePreviewContainer = document.querySelector(`.lcsFileSelectionPreview._file_preview_container.${configs.name}`);
+            let filePreviewLocation = configs.filePreviewLocation ? configs.filePreviewLocation : elementInControl;
             if (!filePreviewContainer) {
                 filePreviewContainer = document.createElement('div');
-                filePreviewContainer.classList.add('lcsFileSelectionPreview', '_file_preview_container');
-                const insertionPosition = configs.filePreviewPosition === 'top' ? 'beforebegin' : 'afterend';
-                elementInControl.insertAdjacentElement(insertionPosition, filePreviewContainer);
+                filePreviewContainer.classList.add('lcsFileSelectionPreview', '_file_preview_container', configs.name);
+
+                filePreviewLocation = validateElement(filePreviewLocation);
+                if (configs.filePreviewPosition === 'inside') {
+                    filePreviewLocation.appendChild(filePreviewContainer);
+                } else {
+                    const insertionPosition = configs.filePreviewPosition === 'top' ? 'beforebegin' : 'afterend';
+                    filePreviewLocation.insertAdjacentElement(insertionPosition, filePreviewContainer);
+                }
             }
-            filePreviewContainer.classList.add('lcsHorizontalScrolling');
             filePreviewContainer.dataset.ftn = configs.name;
 
             // Create left navigator icon
@@ -727,27 +748,13 @@ export async function selectFiles(elementInControl, configs = {}) {
     }
 
     // Set up file chooser dialog trigger if provided
-    if (configs.fileChooserTrigger) {
-        if (!(configs.fileChooserTrigger instanceof HTMLElement)) {
-            const isClassNameSelector = (typeof configs.fileChooserTrigger === 'string') && configs.fileChooserTrigger.startsWith('.');
-            const isIDSelector = (typeof configs.fileChooserTrigger === 'string') && configs.fileChooserTrigger.startsWith('#');
-
-            if (isClassNameSelector || isIDSelector) {
-                configs.fileChooserTrigger = document.querySelector(configs.fileChooserTrigger);
-
-                if (!(configs.fileChooserTrigger instanceof HTMLElement)) {
-                    throw new Error("The selector did not match any DOM element.");
-                }
-            } else {
-                throw new Error("Invalid fileChooserTrigger: must be an HTMLElement, ID selector (#id), or class selector (.class).");
-            }
-        }
+    if (configs.setFileChooserTrigger === true && configs.fileChooserTrigger) {
+        configs.fileChooserTrigger = validateElement(configs.fileChooserTrigger);
 
         configs.fileChooserTrigger.addEventListener('click', () => {
             inputElement.click();
         });
     }
-
     
     // Hide inputElement if max file count reached
     if (maxFileCountReached || (configs.multiple !== true && alreadySelectedFile())) {
@@ -755,8 +762,10 @@ export async function selectFiles(elementInControl, configs = {}) {
         inputElement.style.display = 'none';
     }
 
+    if (configs.returnInputElement === true) {
+        return inputElement
+    }
 }
-
 
 
 
@@ -1099,7 +1108,18 @@ document.addEventListener('click', (event) => {
             // Otherwise, just remove the specific file entry
             delete window.lcsFileSelection.files[fileTrackingName][fileTrackingID];
         }
+
+        // Trigger hooks for file removal
+        const hooksData = {
+            fileTrackingName,
+            fileTrackingID,
+            fileName: fileToRemoveName,
+        };
         
+        hooks.doAction(`selectedFileRemoved_${fileTrackingName}`, hooksData);
+        hooks.doAction(`selectedFileRemoved`, hooksData);
+
+        // Remove the file preview element from the DOM
         fileToRemove.remove();
 
         // Notify the user of successful removal

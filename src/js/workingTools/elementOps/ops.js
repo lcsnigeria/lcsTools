@@ -238,3 +238,120 @@ export function changeElementTagName(oldElement, newTagName, throwOnError = fals
 
     return newElement;
 }
+
+/**
+ * Validates the provided element(s) or selector(s) to ensure they are valid HTMLElements.
+ * - If a single element or selector is passed: returns a single HTMLElement (unless validateAll is true).
+ * - If an array is passed: always returns an array of validated unique HTMLElements.
+ * - Throws on duplicate entries by identity (e.g., same HTMLElement or same selector string).
+ * - Warns if same DOM element is matched via both a selector and element reference.
+ *
+ * @param {string | HTMLElement | Array<string | HTMLElement>} input - A selector, HTMLElement, or an array of them.
+ * @param {boolean} [validateAll=false] - When true, collects all valid matches from selectors.
+ * @returns {HTMLElement | HTMLElement[]} Validated HTMLElement(s).
+ * @throws {Error} For invalid or duplicate inputs.
+ *
+ * @example
+ * // ✅ Single selector (returns first match)
+ * const el = validateElement('.item');
+ *
+ * // ✅ Single selector with validateAll = true (returns all matches)
+ * const els = validateElement('.item', true);
+ *
+ * // ✅ Single HTMLElement
+ * const node = document.querySelector('.item');
+ * const el = validateElement(node);
+ *
+ * // ✅ Array of selectors and/or HTMLElements (always returns array)
+ * const node = document.querySelector('.item');
+ * const els = validateElement([node, '.item2']);
+ *
+ * // ✅ Array input with validateAll = true (returns all unique matches)
+ * const els = validateElement(['.group', document.querySelector('.special')], true);
+ *
+ * // ⚠️ Mixed input causing a duplicate DOM element (warns, but still returns)
+ * const node = document.querySelector('.item');
+ * const els = validateElement([node, '.item']); // Same element matched both ways
+ *
+ * // ❌ Duplicate HTMLElement reference (throws)
+ * const el = document.querySelector('.item');
+ * validateElement([el, el]); // Error: Duplicate HTMLElement reference provided
+ *
+ * // ❌ Duplicate selectors (throws)
+ * validateElement(['.item', '.item']); // Error: Duplicate selector provided
+ *
+ * // ❌ Non-existent selector (throws)
+ * validateElement('.not-found'); // Error: No valid HTML elements found
+ *
+ * // ❌ Invalid input type (throws)
+ * validateElement(123); // Error: Invalid input: must be a selector string or an HTMLElement
+ */
+export function validateElement(input, validateAll = false) {
+    if (!input) {
+        throw new Error('Element or selector is required for validation.');
+    }
+
+    const isArrayInput = Array.isArray(input);
+    const inputs = isArrayInput ? input : [input];
+
+    const seen = new Set(); // Tracks duplicates by identity (string or object)
+    const elementsMap = new Map(); // Maps DOM elements to their source (selector or element)
+    const results = [];
+
+    for (const entry of inputs) {
+        if (typeof entry === 'string') {
+            if (seen.has(entry)) {
+                throw new Error(`Duplicate selector provided: "${entry}"`);
+            }
+            seen.add(entry);
+
+            const found = validateAll
+                ? Array.from(document.querySelectorAll(entry))
+                : [document.querySelector(entry)].filter(Boolean);
+
+            if (found.length === 0) {
+                console.warn(`No elements found for selector: "${entry}"`);
+            }
+
+            for (const el of found) {
+                if (!(el instanceof HTMLElement)) continue;
+
+                const existing = elementsMap.get(el);
+                if (!existing) {
+                    elementsMap.set(el, entry);
+                    results.push(el);
+                } else if (existing !== entry) {
+                    console.warn(`Duplicate element found via both selector and element reference:`, el);
+                } else {
+                    throw new Error(`Duplicate DOM element resolved from selector: "${entry}"`);
+                }
+            }
+        } else if (entry instanceof HTMLElement) {
+            if (seen.has(entry)) {
+                throw new Error('Duplicate HTMLElement reference provided.');
+            }
+            seen.add(entry);
+
+            const existing = elementsMap.get(entry);
+            if (!existing) {
+                elementsMap.set(entry, entry);
+                results.push(entry);
+            } else {
+                throw new Error('Duplicate HTMLElement detected in mixed input.');
+            }
+        } else {
+            throw new Error('Invalid input: must be a selector string or an HTMLElement.');
+        }
+    }
+
+    if (results.length === 0) {
+        throw new Error('No valid HTML elements found.');
+    }
+
+    // Return array if input was array; else return array if validateAll is true; else single element
+    if (isArrayInput || validateAll) {
+        return results;
+    } else {
+        return results[0];
+    }
+}

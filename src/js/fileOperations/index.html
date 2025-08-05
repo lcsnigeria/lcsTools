@@ -10,7 +10,7 @@
 </head>
 <body>
     <h1>HI, Testing File Operations</h1>
-
+    <div class="filePreviewHere"></div>
     <h2>selectFiles Example</h2>
     <button id="uploadButton">Upload Files</button>
     <div id="selectedFiles"></div>
@@ -23,6 +23,7 @@
     <script type="module">
         import '../../js/workingTools/elementOps/uiAndElementManipulation/horizontalScrolling.js';
         import { selectFiles } from './fileSelection.js'; // adjust path as needed
+        import { hooks } from "../hooks.js";
 
         document.addEventListener('DOMContentLoaded', async() => {
             const triggerButton = document.querySelector('#uploadButton');
@@ -33,16 +34,19 @@
             const selectedFilesDiv = bodyElement.querySelector('#selectedFiles');
 
             await selectFiles(fileInput, {
+                name: 'testFileSelection',
                 multiple: true,
                 fileTypes: ['archive'] /*['image', 'pdf'] */,
                 maxFileSize: 10 * 1024 * 1024, // 10MB
                 maxFileCount: 3,
                 imageAspectRatio: ['16:9', '4:3', '4:5'],
                 filePreview: true,
+                //filePreviewLocation: '.filePreviewHere',
                 filePreviewPosition: 'top',
                 fileChooserTrigger: triggerButton,
                 required: true,
                 allowDuplicate: false,
+                setFileChooserTrigger: false,
                 fileSelectedCallback: (files) => {
                     selectedFilesDiv.innerHTML = '<h3>Selected Files:</h3>';
                     files.forEach(file => {
@@ -50,9 +54,16 @@
                     });
                 }
             })
+
+            triggerButton.addEventListener("click", () => {
+                fileInput.click();
+            })
         })
 
-        
+        function testDo(data) {
+            console.log(data);
+        }
+        hooks.addAction('selectedFileRemoved_testFileSelection', testDo);
     </script>
 </body>
 </html>
