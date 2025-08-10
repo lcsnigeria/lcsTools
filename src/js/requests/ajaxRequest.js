@@ -626,7 +626,6 @@ class lcsAjaxRequest {
 
         // If already FormData, reuse it
         if (data instanceof FormData) {
-            console.info('buildFormData: data is already a FormData instance');
             this.#data = data;
             return data;
         }
@@ -636,24 +635,25 @@ class lcsAjaxRequest {
         // Iterate over keys in the data object
         Object.keys(data).forEach(key => {
             const value = data[key];
-            const bracketKey = key.replace(/\[\]/g, '') + '[]';
 
-            // Handle Array values
             if (Array.isArray(value)) {
+                // Array → append with []
+                const bracketKey = key.replace(/\[\]/g, '') + '[]';
                 value.forEach(item => newFormData.append(bracketKey, item));
 
-            // Handle FileList values
             } else if (value instanceof FileList) {
+                // FileList → append with []
+                const bracketKey = key.replace(/\[\]/g, '') + '[]';
                 for (let i = 0; i < value.length; i++) {
                     newFormData.append(bracketKey, value[i]);
                 }
 
-            // Handle single File values
             } else if (value instanceof File) {
-                newFormData.append(key, value);
+                // Single File → append without []
+                newFormData.append(key.replace(/\[\]/g, ''), value);
 
-            // Fallback for primitives/strings/others
             } else {
+                // Primitives/strings → append as-is
                 newFormData.append(key, value);
             }
         });
@@ -662,6 +662,7 @@ class lcsAjaxRequest {
         this.#data = newFormData;
         return newFormData;
     }
+
 }
 
 /**

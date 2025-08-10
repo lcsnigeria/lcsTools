@@ -7,14 +7,17 @@
     <link rel="stylesheet" href="../../css/fileOperations/fileSelection.css">
     <link rel="stylesheet" href="../../css/alertsAndLogs/alerts.css">
     <link rel="stylesheet" href="../../css/uiAndEM/horizontalScrolling.css">
+    <link rel="stylesheet" href="../../css/uiAndEM/displaySettings.css">
 </head>
 <body>
     <h1>HI, Testing File Operations</h1>
-    <div class="filePreviewHere"></div>
-    <h2>selectFiles Example</h2>
-    <button id="uploadButton">Upload Files</button>
-    <div id="selectedFiles"></div>
-    <input type="file" id="fileInput" style="display: none;" multiple>
+    <div class="lcsForm">
+        <div class="filePreviewHere"></div>
+        <h2>selectFiles Example</h2>
+        <button id="uploadButton">Upload Files</button>
+        <div id="selectedFiles"></div>
+        <input type="file" id="fileInput" style="display: none;" multiple>
+    </div>
 
     <!-- Load fileSelection.js which exports selectFiles -->
     <script type="module" src="./fileSelection.js"></script>
@@ -25,40 +28,67 @@
         import { selectFiles } from './fileSelection.js'; // adjust path as needed
         import { hooks } from "../hooks.js";
 
-        document.addEventListener('DOMContentLoaded', async() => {
-            const triggerButton = document.querySelector('#uploadButton');
+        // METHOD 1: Using selectFiles with a button to trigger the file chooser dialog. Useful for subsequent file selection.
+        // document.addEventListener('DOMContentLoaded', async() => {
+        //     const triggerButton = document.querySelector('#uploadButton');
+        //     const bodyElement = triggerButton.closest('body');
+        //     const fileInput = bodyElement.querySelector('#fileInput');
+        //     const selectedFilesDiv = bodyElement.querySelector('#selectedFiles');
 
-            const bodyElement = triggerButton.closest('body');
+        //     await selectFiles(fileInput, {
+        //         name: 'testFileSelection',
+        //         multiple: true,
+        //         fileTypes: ['archive'], /*['image', 'pdf'] */
+        //         maxFileSize: 10 * 1024 * 1024, // 10MB
+        //         maxFileCount: 1,
+        //         imageAspectRatio: ['16:9', '4:3', '4:5'],
+        //         filePreview: true,
+        //         filePreviewPosition: 'top',
+        //         fileChooserTrigger: triggerButton,
+        //         required: true,
+        //         allowDuplicate: true,
+        //         fileSelectedCallback: (files) => {
+        //             selectedFilesDiv.innerHTML = '<h3>Selected Files:</h3>';
+        //             files.forEach(file => {
+        //                 selectedFilesDiv.innerHTML += `<p>${file.name} (${file.type}, ${file.size} bytes)</p>`;
+        //             });
+        //         }
+        //     })
+        // })
 
-            const fileInput = bodyElement.querySelector('#fileInput');
-            const selectedFilesDiv = bodyElement.querySelector('#selectedFiles');
+        // METHOD 2: Using selectFiles with a click event on a button. Useful for immediate and direct file selection.
+        document.addEventListener('click', async(event) => {
+            if (event.target.closest('#uploadButton')) {
+                const triggerButton = event.target;
+                const bodyElement = triggerButton.closest('body');
+                const selectedFilesDiv = bodyElement.querySelector('#selectedFiles');
 
-            await selectFiles(fileInput, {
-                name: 'testFileSelection',
-                multiple: true,
-                fileTypes: ['archive'] /*['image', 'pdf'] */,
-                maxFileSize: 10 * 1024 * 1024, // 10MB
-                maxFileCount: 3,
-                imageAspectRatio: ['16:9', '4:3', '4:5'],
-                filePreview: true,
-                //filePreviewLocation: '.filePreviewHere',
-                filePreviewPosition: 'top',
-                fileChooserTrigger: triggerButton,
-                required: true,
-                allowDuplicate: false,
-                setFileChooserTrigger: false,
-                fileSelectedCallback: (files) => {
-                    selectedFilesDiv.innerHTML = '<h3>Selected Files:</h3>';
-                    files.forEach(file => {
-                        selectedFilesDiv.innerHTML += `<p>${file.name} (${file.type}, ${file.size} bytes)</p>`;
-                    });
-                }
-            })
+                const fileInput = await selectFiles(triggerButton, {
+                    name: 'testFileSelection',
+                    multiple: true,
+                    fileTypes: ['archive'] /*['image', 'pdf'] */,
+                    maxFileSize: 10 * 1024 * 1024, // 10MB
+                    maxFileCount: 2,
+                    imageAspectRatio: ['16:9', '4:3', '4:5'],
+                    filePreview: true,
+                    filePreviewPosition: 'top',
+                    required: true,
+                    allowDuplicate: false,
+                    setFileChooserTrigger: false,
+                    isFileChooserTrigger: true, // This is the file chooser trigger
+                    returnInputElement: true,
+                    allowDuplicate: true,
+                    fileSelectedCallback: (files) => {
+                        selectedFilesDiv.innerHTML = '<h3>Selected Files:</h3>';
+                        files.forEach(file => {
+                            selectedFilesDiv.innerHTML += `<p>${file.name} (${file.type}, ${file.size} bytes)</p>`;
+                        });
+                    }
+                })
 
-            triggerButton.addEventListener("click", () => {
                 fileInput.click();
-            })
-        })
+            }
+        });
 
         function testDo(data) {
             console.log(data);

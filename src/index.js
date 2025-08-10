@@ -62,6 +62,7 @@ export * from './js/formOperations/countrySelection.js';
 export * from './js/formOperations/dropdownOptionSelection.js';
 export * from './js/formOperations/pillOptionSelection.js';
 export * from './js/formOperations/externalFormLibs.js';
+export * from './js/formOperations/formData.js';
 
 // Animations
 export * from './js/animations/loader.js';

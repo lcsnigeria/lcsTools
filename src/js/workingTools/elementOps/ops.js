@@ -7,6 +7,27 @@
  * Useful for dynamic form control, testing behaviors, and advanced UI logic.
  */
 
+/**
+ * Checks if the provided data is an HTMLElement.
+ * If data is a valid HTML selector string, attempts to resolve it to an element.
+ *
+ * @param {any} data - The value to check.
+ * @returns {boolean} True if data is (or resolves to) an HTMLElement, false otherwise.
+ *
+ * @example
+ * isHTMLElement(document.body); // true
+ * isHTMLElement('#main'); // true if element exists
+ * isHTMLElement('.not-found'); // false if not found
+ * isHTMLElement(123); // false
+ */
+export function isHTMLElement(data) {
+    if (data instanceof HTMLElement) return true;
+    if (typeof data === 'string' && isHTMLSelector(data)) {
+        const el = document.querySelector(data);
+        return el instanceof HTMLElement;
+    }
+    return false;
+}
 
 /**
  * Sets the value of an input-like element and triggers the 'input' event manually.

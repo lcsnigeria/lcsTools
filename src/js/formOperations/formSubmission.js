@@ -151,7 +151,10 @@ document.addEventListener("submit", async (event) => {
    */
   const BuildFormData = async () => {
     // Notify hook: starting extraction
-    hooks.doAction('buildingFormData');
+    if (!isDataEmpty(formTarget.id)) {
+      hooks.doAction(`buildingFormData_${formTarget.id}`, formTarget);
+    }
+    hooks.doAction('buildingFormData', formTarget);
 
     const allFields = Array.from(
       formTarget.querySelectorAll(
@@ -168,13 +171,20 @@ document.addEventListener("submit", async (event) => {
       if (type === 'file') {
         if (field.classList.contains('lcsFileSelection')) {
           const sel = window.lcsFileSelection.files[name] || null;
-          const req = field.dataset.file_select_required;
+          const isFileSelectRequired = field.dataset.file_select_required === 'true';
+          const isFileSelectMultiple = field.dataset.file_select_multiple === 'true';
           if (!isDataEmpty(sel)) {
             value = Object.values(sel).map(f => f.file);
-          } else if (req === 'true') {
+            if (Array.isArray(value) && !isFileSelectMultiple) {
+              value = value[0]; // Single file, not array
+            }
+          } else if (isFileSelectRequired) {
             window.lcsForm.isValid = false;
             lcsAlert.send('Please fill all required fields.', 'error');
-            hooks.doAction('errorBuildingFormData', 'Missing files for ' + name);
+            if (!isDataEmpty(formTarget.id)) {
+              hooks.doAction(`errorBuildingFormData_${formTarget.id}`, formTarget, 'Missing files for ' + name);
+            }
+            hooks.doAction('errorBuildingFormData', formTarget,'Missing files for ' + name);
             throw new Error('File selection required but missing for: ' + name);
           }
         } else if (field.files.length) {
@@ -208,7 +218,10 @@ document.addEventListener("submit", async (event) => {
           }
         } catch {
           console.warn('Invalid JSON in pill field:', name);
-          hooks.doAction('warningBuildingFormData', 'JSON parse error: ' + name);
+          if (!isDataEmpty(formTarget.id)) {
+            hooks.doAction(`warningBuildingFormData_${formTarget.id}`, formTarget, 'JSON parse error: ' + name);
+          }
+          hooks.doAction('warningBuildingFormData', formTarget, 'JSON parse error: ' + name);
         }
       }
 
@@ -228,7 +241,10 @@ document.addEventListener("submit", async (event) => {
     });
 
     // Notify hook: extraction done
-    hooks.doAction('doneBuildingFormData', window.lcsForm.data);
+    if (!isDataEmpty(formTarget.id)) {
+      hooks.doAction(`doneBuildingFormData_${formTarget.id}`, formTarget, window.lcsForm.data);
+    }
+    hooks.doAction('doneBuildingFormData', formTarget, window.lcsForm.data);
     return true;
   };
 
