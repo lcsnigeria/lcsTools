@@ -6,8 +6,13 @@ import { isDataEmpty } from "../workingTools/dataTypes.js";
  */
 class lcsLoadTextDoc {
     #file;
-    #text = null;
+
     #loaded = false;
+    #usesBinaryCode = false;
+    #usesText = false;
+
+    #binaryCode = null;
+    #text = null;
 
     /**
      * Creates an instance of lcsLoadTextDoc.
@@ -36,6 +41,55 @@ class lcsLoadTextDoc {
         this.#file = file;
         this.#loaded = false;
         this.#text = null;
+    }
+
+    /**
+     * Sets the file content directly, supporting text or binary data.
+     * Clears any previous file reference.
+     * @param {string|ArrayBuffer|Uint8Array} content - The content to set.
+     * @example
+     * textDoc.setFileContent('console.log("Hello!");');
+     * textDoc.setFileContent(new Uint8Array([0x01, 0x02]));
+     */
+    setFileContent(content) {
+        this.#file = null;
+        this.#loaded = true;
+        if (
+            content instanceof ArrayBuffer ||
+            content instanceof Uint8Array
+        ) {
+            this.#usesBinaryCode = true;
+            this.#usesText = false;
+            this.#binaryCode = content;
+            this.#text = null;
+        } else if (typeof content === 'string') {
+            this.#usesText = true;
+            this.#usesBinaryCode = false;
+            this.#text = content;
+            this.#binaryCode = null;
+        } else {
+            throw new Error('Content must be a string or binary (ArrayBuffer/Uint8Array).');
+        }
+    }
+
+    /**
+     * Decodes binary code to text using UTF-8.
+     * If no argument is provided, uses the class property.
+     * Throws error if not binary code.
+     * @param {ArrayBuffer|Uint8Array|null} binaryCode - The binary code to decode.
+     * @returns {string} The decoded text.
+     * @throws {Error} If no binary code is available.
+     * @example
+     * const text = textDoc.decodeBinary();
+     * const text2 = textDoc.decodeBinary(someUint8Array);
+     */
+    decodeBinary(binaryCode = null) {
+        const code = binaryCode ?? this.#binaryCode;
+        if (!(code instanceof ArrayBuffer || code instanceof Uint8Array)) {
+            throw new Error('No binary code to decode.');
+        }
+        const decoder = new TextDecoder('utf-8');
+        return decoder.decode(code);
     }
 
     /**
@@ -178,7 +232,12 @@ class lcsLoadTextDoc {
         if (!(container instanceof HTMLElement)) {
             throw new Error('Container must be a valid HTML element');
         }
-        await this.#loadFile();
+        
+        // Load file if not using either text or binary code
+        if (!this.#usesText && !this.#usesBinaryCode) {
+            await this.#loadFile();
+        }
+
         await this.#ensureMonaco();
         container.innerHTML = '';
         const extension = this.#getExtension();
@@ -201,6 +260,16 @@ class lcsLoadTextDoc {
             'yaml': 'yaml',
             'xml': 'xml'
         };
+
+        // Get text from binary code if provided
+        if (this.#usesBinaryCode) {
+            this.#text = this.decodeBinary();
+        }
+
+        if (!this.#text) {
+            throw new Error('No text content available to render as code.');
+        }
+
         const detectedLanguage = language || languageMap[extension] || 'plaintext';
         const editorOptions = {
             value: this.#text,

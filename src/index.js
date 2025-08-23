@@ -19,6 +19,7 @@ export * from './js/dataStorage/localDatabase.js';
 
 // Tools
 export * from './js/workingTools/arrayOps.js';
+export * from './js/workingTools/objectOps.js';
 export * from './js/workingTools/credsAndCodes.js';
 export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';

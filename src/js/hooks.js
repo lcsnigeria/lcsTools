@@ -35,95 +35,98 @@
  * console.log(isStillRegistered); // Output: false
  */
 class lcsHooks {
-    constructor() {
-      /**
-       * Internal map of hooks to arrays of callback objects.
-       * @private
-       * @type {Map<string, Array<{cb: Function, priority: number}>>}
-       */
-      this._hooks = new Map();
-    }
-  
+  constructor() {
     /**
-     * Registers a callback to execute when a given hook is triggered.
-     *
-     * @param {string} hook - The name of the hook.
-     * @param {Function} cb - The callback function to register.
-     * @param {number} [priority=10] - Execution priority (lower numbers run earlier).
-     * @throws {TypeError} If cb is not a function.
-     *
-     * @example
-     * import { hooks } from 'your-lib/hooks.js';
-     * hooks.addAction('init', () => console.log('init fired'), 5);
+     * Internal map of hooks to arrays of callback objects.
+     * @private
+     * @type {Map<string, Array<{cb: Function, priority: number}>>}
      */
-    addAction(hook, cb, priority = 10) {
-      if (typeof cb !== 'function') {
-        throw new TypeError('Callback must be a function');
-      }
-      const list = this._hooks.get(hook) || [];
-      list.push({ cb, priority });
-      // Sort callbacks by ascending priority
-      list.sort((a, b) => a.priority - b.priority);
-      this._hooks.set(hook, list);
+    this._hooks = new Map();
+  }
+
+  /**
+   * Registers a callback to execute when a given hook is triggered.
+   *
+   * @param {string} hook - The name of the hook.
+   * @param {Function} cb - The callback function to register.
+   * @param {number} [priority=10] - Execution priority (lower numbers run earlier).
+   * @throws {TypeError} If cb is not a function.
+   *
+   * @example
+   * import { hooks } from 'your-lib/hooks.js';
+   * hooks.addAction('init', () => console.log('init fired'), 5);
+   */
+  addAction(hook, cb, priority = 10) {
+    if (typeof cb !== 'function') {
+      throw new TypeError('Callback must be a function');
     }
-  
-    /**
-     * Executes all callbacks attached to a specific hook, in order of priority.
-     *
-     * @param {string} hook - The name of the hook to trigger.
-     * @param {...any} args - Arguments to pass to each callback.
-     *
-     * @example
-     * hooks.doAction('init', window, document);
-     */
-    doAction(hook, ...args) {
-      const list = this._hooks.get(hook) || [];
-      for (const { cb } of list) {
-        try {
-          cb(...args);
-        } catch (err) {
-          console.error(`Error in hook "${hook}":`, err);
-        }
-      }
-    }
-  
-    /**
-     * Determines if a given callback is registered on a hook.
-     *
-     * @param {string} hook - The hook name to check.
-     * @param {Function} cb - The callback to look for.
-     * @returns {boolean} True if the callback is registered, false otherwise.
-     *
-     * @example
-     * const myListener = () => {};
-     * hooks.addAction('save', myListener);
-     * console.log(hooks.hasAction('save', myListener)); // true
-     */
-    hasAction(hook, cb) {
-      const list = this._hooks.get(hook);
-      if (!list) return false;
-      return list.some(item => item.cb === cb);
-    }
-  
-    /**
-     * Removes a specific callback from a hook. If no callbacks remain, the hook is deleted.
-     *
-     * @param {string} hook - The name of the hook.
-     * @param {Function} cb - The callback function to remove.
-     *
-     * @example
-     * hooks.removeAction('save', myListener);
-     */
-    removeAction(hook, cb) {
-      const list = this._hooks.get(hook);
-      if (!list) return;
-      const filtered = list.filter(item => item.cb !== cb);
-      if (filtered.length) {
-        this._hooks.set(hook, filtered);
-      } else {
-        this._hooks.delete(hook);
+    const list = this._hooks.get(hook) || [];
+    list.push({ cb, priority });
+    // Sort callbacks by ascending priority
+    list.sort((a, b) => a.priority - b.priority);
+    this._hooks.set(hook, list);
+  }
+
+  /**
+   * Executes all callbacks attached to a specific hook, in order of priority.
+   * Supports both sync and async callbacks.
+   *
+   * @param {string} hook - The name of the hook to trigger.
+   * @param {...any} args - Arguments to pass to each callback.
+   * @returns {Promise<void>} Resolves once all callbacks finish.
+   *
+   * @example
+   * await hooks.doAction('init', window, document);
+   */
+  async doAction(hook, ...args) {
+    const list = this._hooks.get(hook) || [];
+    for (const { cb } of list) {
+      try {
+        // If callback returns a promise, await it
+        await cb(...args);
+      } catch (err) {
+        console.error(`Error in hook "${hook}":`, err);
       }
     }
+  }
+
+  /**
+   * Determines if a given callback is registered on a hook.
+   *
+   * @param {string} hook - The hook name to check.
+   * @param {Function} cb - The callback to look for.
+   * @returns {boolean} True if the callback is registered, false otherwise.
+   *
+   * @example
+   * const myListener = () => {};
+   * hooks.addAction('save', myListener);
+   * console.log(hooks.hasAction('save', myListener)); // true
+   */
+  hasAction(hook, cb) {
+    const list = this._hooks.get(hook);
+    if (!list) return false;
+    return list.some(item => item.cb === cb);
+  }
+
+  /**
+   * Removes a specific callback from a hook. If no callbacks remain, the hook is deleted.
+   *
+   * @param {string} hook - The name of the hook.
+   * @param {Function} cb - The callback function to remove.
+   *
+   * @example
+   * hooks.removeAction('save', myListener);
+   */
+  removeAction(hook, cb) {
+    const list = this._hooks.get(hook);
+    if (!list) return;
+    const filtered = list.filter(item => item.cb !== cb);
+    if (filtered.length) {
+      this._hooks.set(hook, filtered);
+    } else {
+      this._hooks.delete(hook);
+    }
+  }
 }
   
 /**
