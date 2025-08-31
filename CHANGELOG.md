@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.33](https://github.com/lcsnigeria/lcsTools/compare/v0.0.32...v0.0.33) (2025-08-31)
+
+
+### Features
+
+* Enhance file operations and editor integration ([8c590b5](https://github.com/lcsnigeria/lcsTools/commit/8c590b564926848a1c96dda8d44332907bcb3b10))
+
 ### [0.0.32](https://github.com/lcsnigeria/lcsTools/compare/v0.0.31...v0.0.32) (2025-08-31)
 
 ### [0.0.31](https://github.com/lcsnigeria/lcsTools/compare/v0.0.30...v0.0.31) (2025-08-31)
