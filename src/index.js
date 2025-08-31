@@ -42,6 +42,7 @@ export * from './js/workingTools/elementOps/uiAndElementManipulation/horizontalS
 export * from './js/requests/ajaxRequest.js';
 
 // File Oprations
+export * from './js/fileOperations/codes.js';
 export * from './js/fileOperations/file.js';
 export * from './js/fileOperations/image.js';
 export * from './js/fileOperations/video.js';

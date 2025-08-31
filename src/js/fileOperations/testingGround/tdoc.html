@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rich Text Editor Example</title>
+  <style>
+    ._text_doc { border: 1px solid #ccc; padding: 10px; min-height: 300px; }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    button, input { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <input type="file" id="fileInput" accept=".txt,.html">
+  <button id="loadFileBtn">Load File</button>
+  <button id="tinyMCEBtn">Use TinyMCE</button>
+  <button id="ckEditorBtn">Use CKEditor</button>
+  <button id="saveContentBtn">Save Content</button>
+  <div id="editor-container"></div>
+  <script type="module">
+    import { textDoc } from '../textDoc.js';
+
+    let rt_editor;
+    //
+    async function loadFile() {
+      const fileInput = document.getElementById('fileInput');
+      const container = document.getElementById('editor-container');
+      if (fileInput.files.length > 0) {
+        // Load file from input and render with TinyMCE (editable)
+        textDoc.setFile(fileInput.files[0]);
+        rt_editor = await textDoc.renderAsRichText('tinymce', container, true, {
+          inline: false,
+          apiKey: 'f10q0e2t7dexiiaxx6egxmossswbh3szm5lncunlpppwqfxq',
+          toolbar: 'undo redo | bold italic | link image', // Custom toolbar
+          content_style: 'body { font-family: Helvetica, sans-serif; font-size: 16px; }'
+        });
+      } else {
+        // Load inline content and render with TinyMCE (editable)
+        textDoc.setFileContent('<h1>Welcome</h1><p>This is <b>sample</b> text.</p>');
+        rt_editor = await textDoc.renderAsRichText('tinymce', container, true, {
+          inline: false,
+          //remove_menubar: 'file edit',
+          //remove_toolbar: 'undo redo | bold italic | link image underline',
+          apiKey: 'f10q0e2t7dexiiaxx6egxmossswbh3szm5lncunlpppwqfxq',
+         
+        });
+      }
+    }
+///
+    async function switchToTinyMCE() {
+      const container = document.getElementById('editor-container');
+      // Render current content with TinyMCE (non-editable)
+      rt_editor = await textDoc.renderAsRichText('tinymce', container, false, {
+        inline: false,
+        apiKey: 'f10q0e2t7dexiiaxx6egxmossswbh3szm5lncunlpppwqfxq',
+        content_style: 'body { font-family: Georgia, serif; font-size: 14px; }'
+      });
+    }
+
+    async function switchToCKEditor() {
+      const container = document.getElementById('editor-container');
+      // Render current content with CKEditor (editable)
+      rt_editor = await textDoc.renderAsRichText('ckeditor', container, true, {
+        apiKey: 'eyJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3NTc4MDc5OTksImp0aSI6IjczMmYyOTQ2LWIzODItNDI4NS04MGY0LWVkMzI0ODc1NWNlNCIsInVzYWdlRW5kcG9pbnQiOiJodHRwczovL3Byb3h5LWV2ZW50LmNrZWRpdG9yLmNvbSIsImRpc3RyaWJ1dGlvbkNoYW5uZWwiOlsiY2xvdWQiLCJkcnVwYWwiLCJzaCJdLCJ3aGl0ZUxhYmVsIjp0cnVlLCJsaWNlbnNlVHlwZSI6InRyaWFsIiwiZmVhdHVyZXMiOlsiKiJdLCJ2YyI6IjhlNzBhYTc3In0.z4yluK5dXGB_cxziA435igWqFhK7ApKB5qLicQK43alHv2UldciduRU-0dMm8bnsiVgBowUbsqJflUWHtPmqFg',
+        toolbar: ['bold', 'italic', 'link', 'bulletedList'], // Custom toolbar
+        contentStyles: [{ name: 'body', styles: { 'font-size': '16px' } }]
+      });
+    }
+
+    async function saveContent() {
+      if (!rt_editor) {
+        throw new Error('No editor instance found. Please load or switch to an editor before saving.');
+      }
+
+      const container = document.getElementById('editor-container');
+      const editorType = container.querySelector('._text_doc_tinymce') ? 'tinymce' : 'ckeditor';
+      if (editorType === 'tinymce') {
+        const editor = window.tinymce.get(container.querySelector('._text_doc_tinymce').id);
+        console.log('TinyMCE Content:', editor.getContent());
+        // Example: Save to file
+        const blob = new Blob([editor.getContent()], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'edited_content.html';
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        //const editor = container.querySelector('._text_doc_ckeditor')._ckeditorInstance;
+        console.log('CKEditor Content:', rt_editor.getData());
+        // Example: Save to file
+        const blob = new Blob([rt_editor.getData()], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'edited_content.html';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // Bind event listeners
+    document.getElementById('loadFileBtn').addEventListener('click', loadFile);
+    document.getElementById('tinyMCEBtn').addEventListener('click', switchToTinyMCE);
+    document.getElementById('ckEditorBtn').addEventListener('click', switchToCKEditor);
+    document.getElementById('saveContentBtn').addEventListener('click', saveContent);
+
+    // Initialize with sample content
+    loadFile();
+  </script>
+</body>
+</html>
