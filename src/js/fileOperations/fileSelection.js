@@ -677,7 +677,7 @@ export async function selectFiles(elementInControl, configs = {}) {
 
         // Store files with tracking IDs
         fileData.forEach((fd) => {
-            const trackingID = generateCodes('letters', 8);
+            const trackingID = generateCodes(8, 'letters');
             fd.tracking_id = trackingID;
 
             // Check if the file already exists in the lcsFileSelection files object

@@ -229,3 +229,71 @@ export function arrayIntersect(arr1, arr2) {
     const lookup = new Set(arr2);
     return arr1.filter(item => lookup.has(item));
 }
+
+/**
+ * Remove an item from an array or object.
+ *
+ * Behavior:
+ * - If `bucket` is an array, the item is interpreted as a numeric index.
+ *   The element at that index is removed using `splice`, shifting subsequent elements.
+ * - If `bucket` is an object, the item is interpreted as a property key.
+ *   The property is removed using the `delete` operator.
+ * - If `bucket` is neither an object nor an array, an error is thrown.
+ *
+ * Rules:
+ * - For arrays:
+ *   - Only valid numeric indices are accepted (0 ≤ index < array.length).
+ *   - Removal shifts elements to close the gap (no empty holes).
+ * - For objects:
+ *   - Only own properties can be removed (not inherited ones).
+ *   - If the key does not exist, the function returns `false`.
+ *
+ * @param {Object|Array} bucket - The target object or array.
+ * @param {string|number} item - Key (for object) or index (for array).
+ * @returns {boolean} - Returns `true` if the removal was successful, otherwise `false`.
+ *
+ * @example
+ * // Example with an object
+ * let user = { id: 1, name: "Alice", age: 25 };
+ * unsetItem(user, "age");
+ * console.log(user);
+ * // → { id: 1, name: "Alice" }
+ *
+ * @example
+ * // Example with an array
+ * let numbers = [10, 20, 30, 40];
+ * unsetItem(numbers, 2);
+ * console.log(numbers);
+ * // → [10, 20, 40]
+ *
+ * @example
+ * // Example with invalid array index
+ * let items = ["a", "b", "c"];
+ * console.log(unsetItem(items, 10));
+ * // → false (no change to items)
+ *
+ * @example
+ * // Example with missing object key
+ * let settings = { theme: "dark" };
+ * console.log(unsetItem(settings, "lang"));
+ * // → false (no change to settings)
+ */
+export function unsetItem(bucket, item) {
+    if (Array.isArray(bucket)) {
+        if (typeof item === "number" && item >= 0 && item < bucket.length) {
+            bucket.splice(item, 1);
+            return true;
+        }
+        return false;
+    } 
+    
+    if (bucket !== null && typeof bucket === "object") {
+        if (Object.prototype.hasOwnProperty.call(bucket, item)) {
+            delete bucket[item];
+            return true;
+        }
+        return false;
+    }
+
+    throw new Error("unsetItem: bucket must be an object or an array.");
+}

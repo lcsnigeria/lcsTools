@@ -28,7 +28,7 @@ export function generateDropdownOptions(config = {}) {
     };
 
     const finalConfig = { ...defaultConfig, ...config };
-    const dropdownID = generateCodes('mixed', 10);
+    const dropdownID = generateCodes(10, 'mixed');
 
     window.lcsDropdownOptions[dropdownID] = {
         name: finalConfig.name,

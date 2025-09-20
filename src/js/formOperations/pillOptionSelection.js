@@ -32,7 +32,7 @@ export function generatePillOptions(data = {}) {
     const config = { ...defaultData, ...data };
 
     // Generate unique tracking ID
-    const optionDataTrackingID = generateCodes('mixed', 10);
+    const optionDataTrackingID = generateCodes(10, 'mixed');
 
     // Normalize maxSelection
     const effectiveMaxSelection =

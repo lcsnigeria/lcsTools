@@ -539,7 +539,7 @@ class lcsLoadTextDoc {
         if (this.#usesBinaryCode) {
             this.#text = this.decodeBinary();
         }
-        if (!this.#text) {
+        if (!this.#text && this.#text !== '') {
             throw new Error('No text content available to render as rich text.');
         }
 

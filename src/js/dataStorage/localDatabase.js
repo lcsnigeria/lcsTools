@@ -207,4 +207,4 @@ export async function clearLocalDatabase(dbName = 'lcsLocalDatabase', alsoDelete
   }
 }
 
-export const lcsLocalDatabase = true;
+export const localDatabaseFunctions = true;
