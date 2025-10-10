@@ -6,6 +6,7 @@ import '../../css/themesVars/primaryTheme.css'; // CSS Themes
 
 import '../../css/uiAndEM/horizontalScrolling.css';
 import '../../css/uiAndEM/displaySettings.css';
+import '../../css/uiAndEM/overlayUtils.css';
 
 
 import '../../css/fileOperations/fileSelection.css';

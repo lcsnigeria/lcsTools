@@ -1,0 +1,41 @@
+.lcsOverlayElement {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.lcsOverlayElement ._overlay_container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: hidden;
+  position: relative;
+}
+
+.lcsOverlayElement ._overlay_element {
+  width: 100%;
+  height: auto;
+  overflow-y: auto;
+}
+
+.lcsOverlayElement ._overlay_dismisser {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  cursor: pointer;
+  font-size: 20px;
+  color: #333;
+}
+
+.lcsOverlayElement._hide {
+  display: none !important;
+}

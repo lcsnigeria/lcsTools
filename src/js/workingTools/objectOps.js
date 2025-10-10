@@ -723,3 +723,97 @@ export function extendObjectValue(obj, data, position = null, drillPosition = "s
 
     return obj;
 }
+
+/**
+ * Get the "last value(s)" from an object or array based on key positions.
+ *
+ * Behavior summary:
+ * - path default = 0
+ * - single number => deep-drill using that index at each object level, returns single value
+ * - array:
+ *    - if contains nested arrays => multiple paths, returns array of results (no undefined)
+ *    - else (array of numbers) => single sequence path, returns array (may be [] if not found)
+ * - if obj is array => only allowed path values are 0 (default) or -1; both return last element
+ *
+ * @param {object|array} obj
+ * @param {number|number[]| (number|number[])[]} [path=0]
+ * @returns {any | any[]}
+ */
+export function getLastValue(obj, path = 0) {
+  const isObj = t => typeof t === 'object' && t !== null && !Array.isArray(t);
+
+  // deep-drill using same index at every level until non-object
+  const deepDrill = (target, idx) => {
+    let cur = target;
+    while (isObj(cur)) {
+      const keys = Object.keys(cur);
+      if (keys.length === 0) return undefined;
+      let i = idx;
+      if (i < 0) i = keys.length + i;
+      if (i < 0 || i >= keys.length) i = 0;
+      cur = cur[keys[i]];
+    }
+    return cur;
+  };
+
+  // follow an explicit sequence of steps, then continue deep-drill using the last step
+  const followSequence = (target, seq) => {
+    let cur = target;
+    for (let step of seq) {
+      if (!isObj(cur)) return undefined;
+      const keys = Object.keys(cur);
+      if (keys.length === 0) return undefined;
+      let i = step;
+      if (i < 0) i = keys.length + i;
+      if (i < 0 || i >= keys.length) i = 0;
+      cur = cur[keys[i]];
+      if (cur === undefined) return undefined;
+    }
+
+    // If sequence finished but result is still an object, deep-drill using the last step.
+    if (isObj(cur)) {
+      const lastStep = seq[seq.length - 1];
+      const idx = typeof lastStep === 'number' ? lastStep : 0;
+      return deepDrill(cur, idx);
+    }
+
+    return cur;
+  };
+
+  // special case: source is an array
+  if (Array.isArray(obj)) {
+    if (Array.isArray(path)) {
+      throw new Error("When source is an array, path must be a number (0 or -1).");
+    }
+    if (path === 0 || path === -1) {
+      return obj.length > 0 ? obj[obj.length - 1] : undefined;
+    }
+    throw new Error("Invalid path for array: only 0 (default) or -1 are allowed.");
+  }
+
+  // if path is an array
+  if (Array.isArray(path)) {
+    const hasNested = path.some(p => Array.isArray(p));
+
+    if (hasNested) {
+      // path is multiple paths: each element may be number or array (sequence)
+      const results = path
+        .map(p => Array.isArray(p) ? followSequence(obj, p) : (typeof p === 'number' ? deepDrill(obj, p) : undefined))
+        .filter(v => v !== undefined);
+      return results;
+    }
+
+    // path is an array of numbers (no nested arrays) => treat as multiple single-number paths
+    const results = path
+      .map(n => (typeof n === 'number' ? deepDrill(obj, n) : undefined))
+      .filter(v => v !== undefined);
+    return results;
+  }
+
+  // path is a single number => deep-drill and return single value
+  if (typeof path === 'number') {
+    return deepDrill(obj, path);
+  }
+
+  throw new Error("Invalid path type. Expected number or array.");
+}

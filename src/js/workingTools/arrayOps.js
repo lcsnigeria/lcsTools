@@ -297,3 +297,168 @@ export function unsetItem(bucket, item) {
 
     throw new Error("unsetItem: bucket must be an object or an array.");
 }
+
+/**
+ * Remove an item from an array or object by value.
+ *
+ * Behavior:
+ * - If `bucket` is an array, the function looks for the first element
+ *   equal (`===`) to `item` and removes it using `splice`.
+ * - If `bucket` is an object, the function looks for the first property
+ *   whose value equals (`===`) `item` and removes that property.
+ * - If `bucket` is neither an object nor an array, an error is thrown.
+ *
+ * Rules:
+ * - For arrays:
+ *   - Only the first matching value is removed.
+ *   - Removal shifts elements to close the gap (no empty holes).
+ *   - If the value does not exist, the function returns `false`.
+ * - For objects:
+ *   - Only own properties are checked (not inherited ones).
+ *   - The first matching key with that value is removed.
+ *   - If no value matches, the function returns `false`.
+ *
+ * @param {Object|Array} bucket - The target object or array.
+ * @param {*} item - The value to remove.
+ * @returns {boolean} - Returns `true` if the removal was successful, otherwise `false`.
+ *
+ * @example
+ * // Example with an array
+ * let numbers = [10, 20, 30, 40];
+ * unsetItemByValue(numbers, 30);
+ * console.log(numbers);
+ * // → [10, 20, 40]
+ *
+ * @example
+ * // Example with an object
+ * let user = { id: 1, name: "Alice", age: 25 };
+ * unsetItemByValue(user, "Alice");
+ * console.log(user);
+ * // → { id: 1, age: 25 }
+ *
+ * @example
+ * // Example with non-existing value in array
+ * let items = ["a", "b", "c"];
+ * console.log(unsetItemByValue(items, "x"));
+ * // → false (no change to items)
+ *
+ * @example
+ * // Example with non-existing value in object
+ * let settings = { theme: "dark", lang: "en" };
+ * console.log(unsetItemByValue(settings, "light"));
+ * // → false (no change to settings)
+ */
+export function unsetItemByValue(bucket, item) {
+    if (Array.isArray(bucket)) {
+        const index = bucket.indexOf(item);
+        if (index !== -1) {
+            bucket.splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+
+    if (bucket !== null && typeof bucket === "object") {
+        for (const key in bucket) {
+            if (Object.prototype.hasOwnProperty.call(bucket, key) && bucket[key] === item) {
+                delete bucket[key];
+                return true;
+            }
+        }
+        return false;
+    }
+
+    throw new Error("unsetItemByValue: bucket must be an object or an array.");
+}
+
+/**
+ * Spread any data into a flat array.
+ *
+ * Rules:
+ * - Objects: flatten into [key, value, key, value, ...].
+ * - Arrays: flatten nested arrays.
+ * - Strings:
+ *   - If splitData=true → spread into characters.
+ *   - If splitData=false → split by separator (default space).
+ *     - If separator is "" or not found → keep as whole string.
+ * - Numbers: if splitData=true → spread digits, else keep whole number.
+ * - Booleans: always kept atomic → [true] / [false].
+ * - null/undefined: → [null] / [undefined].
+ *
+ * @param {*} data - Any data type to be spread.
+ * @param {boolean} [splitData=false] - Whether to split strings/numbers into characters/digits.
+ * @param {string} [separator=" "] - Separator to split strings if splitData=false.
+ * @returns {any[]} Flattened array of values.
+ *
+ * @example
+ * spreadToArray({a: 1, b: 2, c: 3});
+ * // → ["a", 1, "b", 2, "c", 3]
+ *
+ * spreadToArray([ "a", ["b", "c"], "d" ]);
+ * // → ["a", "b", "c", "d"]
+ *
+ * spreadToArray("cat");
+ * // → ["cat"]
+ * 
+ * spreadToArray("cat", true);
+ * // → ["c", "a", "t"]
+ *
+ * spreadToArray("cat,dog", false, ",");
+ * // → ["cat", "dog"]
+ *
+ * spreadToArray(123);
+ * // → [123]
+ * 
+ * spreadToArray(123, true);
+ * // → [1, 2, 3]
+ *
+ * spreadToArray(true);
+ * // → [true]
+ *
+ * spreadToArray({ a: 1, b: true, c: "hi" }, true);
+ * // → ["a", 1, "b", true, "c", "h", "i"]
+ *
+ * spreadToArray([ 42, "ok", [true, { x: "hi" }] ], true);
+ * // → [4, 2, "o", "k", true, "x", "h", "i"]
+ */
+export function spreadToArray(data, splitData = false, separator = " ") {
+  if (data === null || data === undefined) return [data];
+
+  // Handle objects
+  if (typeof data === "object" && !Array.isArray(data)) {
+    const result = [];
+    for (const [key, value] of Object.entries(data)) {
+      result.push(key, value);
+    }
+    return result.flatMap(v => spreadToArray(v, splitData, separator));
+  }
+
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.flatMap(v => spreadToArray(v, splitData, separator));
+  }
+
+  // Handle booleans as atomic values
+  if (typeof data === "boolean") {
+    return [data];
+  }
+
+  // Handle numbers
+  if (typeof data === "number") {
+    return splitData ? String(data).split("").map(Number) : [data];
+  }
+
+  // Handle strings
+  if (typeof data === "string") {
+    if (splitData) {
+      return data.split("");
+    } else {
+      if (separator === "") return [data];
+      const parts = data.split(separator);
+      return parts.length > 1 ? parts : [data];
+    }
+  }
+
+  // Fallback
+  return [data];
+}

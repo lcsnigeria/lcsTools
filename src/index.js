@@ -37,6 +37,7 @@ export * from './js/workingTools/elementOps/ops.js';
 export * from './js/workingTools/elementOps/uiAndElementManipulation/elementScrolling.js';
 export * from './js/workingTools/elementOps/uiAndElementManipulation/closeContainerElement.js';
 export * from './js/workingTools/elementOps/uiAndElementManipulation/horizontalScrolling.js';
+export * from './js/workingTools/elementOps/uiAndElementManipulation/overlayUtils.js';
 
 // Request
 export * from './js/requests/ajaxRequest.js';
