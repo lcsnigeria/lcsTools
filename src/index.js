@@ -23,6 +23,7 @@ export * from './js/workingTools/objectOps.js';
 export * from './js/workingTools/credsAndCodes.js';
 export * from './js/workingTools/dataTypes.js';
 export * from './js/workingTools/stringOps.js';
+export * from './js/workingTools/numberOps.js';
 export * from './js/workingTools/colorOps.js';
 export * from './js/workingTools/urlOps.js';
 export * from './js/workingTools/execUtilities.js';
