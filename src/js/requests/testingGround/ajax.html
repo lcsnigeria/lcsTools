@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ajaxRequest Testing Ground</title>
+    <!-- Add AJAX object meta for WordPress-like environment -->
+    <meta name="lcs_ajax_object" content='{"ajaxurl": "/wp-admin/admin-ajax.php"}'>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .output {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>ajaxRequest Testing Ground</h1>
+
+    <!-- Basic JSON Request Test -->
+    <div class="test-section">
+        <h2>Basic JSON Request</h2>
+        <button onclick="testBasicRequest()">Test JSON Request</button>
+        <div id="basicOutput" class="output"></div>
+    </div>
+
+    <!-- Form Data Test -->
+    <div class="test-section">
+        <h2>FormData Request</h2>
+        <form id="testForm">
+            <input type="text" name="testField" value="Test Value">
+            <input type="file" name="testFile">
+            <button type="button" onclick="testFormDataRequest()">Test FormData</button>
+        </form>
+        <div id="formOutput" class="output"></div>
+    </div>
+
+    <!-- Hook Testing -->
+    <div class="test-section">
+        <h2>Hook Events Test</h2>
+        <button onclick="testHookEvents()">Test Hooks</button>
+        <div id="hooksOutput" class="output"></div>
+    </div>
+
+    <!-- Offline Handling Test -->
+    <div class="test-section">
+        <h2>Offline Handling</h2>
+        <button onclick="testOfflineHandling()">Test Offline Handling</button>
+        <div id="offlineOutput" class="output"></div>
+    </div>
+
+    <script type="module">
+        import { ajaxRequest } from '../ajaxRequest.js';
+
+        // Make functions available globally
+        window.testBasicRequest = async function() {
+            const output = document.getElementById('basicOutput');
+            try {
+                const tfd = new FormData();
+                tfd.append('test', 'value');
+                tfd.append('secure', false);
+
+                const ajax = new ajaxRequest('/ae.php', 'GET');
+                // ajax.setData({ test: 'value', secure: false });
+                ajax.setData(tfd);
+                const response = await ajax.send();
+                output.innerHTML = `Success: ${JSON.stringify(response, null, 2)}`;
+                output.className = 'output success';
+            } catch (error) {
+                output.innerHTML = `Error: ${error.message}`;
+                output.className = 'output error';
+            }
+        };
+
+        window.testFormDataRequest = async function() {
+            const output = document.getElementById('formOutput');
+            try {
+                const form = document.getElementById('testForm');
+                const formData = new FormData(form);
+                
+                const ajax = new ajaxRequest('/api/upload', 'POST');
+                ajax.setModel('fetch'); // Use fetch API for FormData
+                ajax.setData(formData);
+                
+                const response = await ajax.send();
+                output.innerHTML = `Success: ${JSON.stringify(response, null, 2)}`;
+                output.className = 'output success';
+            } catch (error) {
+                output.innerHTML = `Error: ${error.message}`;
+                output.className = 'output error';
+            }
+        };
+
+        window.testHookEvents = async function() {
+            const output = document.getElementById('hooksOutput');
+            const ajax = new ajaxRequest('/api/test', 'POST');
+            
+            // Set unique hooks ID
+            ajax.setHooksId('test-hooks');
+            
+            // Log all hook events
+            const events = [
+                'ajaxRequestIsBusy',
+                'ajaxRequestSucceeded',
+                'ajaxRequestFailedOnError',
+                'ajaxRequestCompleted'
+            ];
+
+            events.forEach(event => {
+                hooks.addAction(event + '_test-hooks', (data) => {
+                    const log = document.createElement('div');
+                    log.textContent = `Hook fired: ${event}`;
+                    if (data) log.textContent += ` - ${JSON.stringify(data)}`;
+                    output.appendChild(log);
+                });
+            });
+
+            try {
+                await ajax.send({ test: 'hooks' });
+            } catch (error) {
+                const log = document.createElement('div');
+                log.textContent = `Error: ${error.message}`;
+                log.className = 'error';
+                output.appendChild(log);
+            }
+        };
+
+        window.testOfflineHandling = async function() {
+            const output = document.getElementById('offlineOutput');
+            const ajax = new ajaxRequest('/api/test', 'POST');
+            
+            // Enable offline waiting
+            ajax.waitOffline(true);
+            ajax.maxWaitTime = 5000; // 5 seconds max wait
+            
+            try {
+                const response = await ajax.send({ test: 'offline' });
+                output.innerHTML = `Success: ${JSON.stringify(response, null, 2)}`;
+                output.className = 'output success';
+            } catch (error) {
+                output.innerHTML = `Error: ${error.message}`;
+                output.className = 'output error';
+            }
+        };
+    </script>
+</body>
+</html>

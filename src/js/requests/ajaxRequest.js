@@ -1,4 +1,5 @@
 import { hooks } from '../hooks.js';
+import { decodeURLQuery, encodeURLQuery } from '../workingTools/arrayOps.js';
 import { isDataEmpty, isDataObject } from '../workingTools/dataTypes.js';
 
 const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]'); // Get the AJAX object meta tag.
@@ -12,7 +13,7 @@ let lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.con
  *
  * @example
  * // Basic usage with JSON data
- * const ajax = new lcsAjaxRequest('https://example.com/api', 'POST', {});
+ * const ajax = new ajaxRequest('https://example.com/api', 'POST', {});
  * ajax.setData({ key: 'value' });
  * ajax.send().then(response => console.log(response)).catch(error => console.error(error));
  *
@@ -25,19 +26,17 @@ let lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.con
  * ajax.setData(formData);
  * ajax.send();
  */
-class lcsAjaxRequest {
+export class ajaxRequest {
     /**
      * PRIVATE PROPERTIES
      */
     #url;                   // The target URL for the request
-    #data;                  // The data payload (object or FormData)
+    #data = {};                  // The data payload (object or FormData)
     #method;                // HTTP method ('GET' or 'POST')
     #headers = {};          // Custom headers for the request
     #model = 'xhr';         // Request model ('fetch' or 'xhr')
 
     #nonce_url;             // URL for nonce retrieval, defaults to #url
-    #nonce_name = 'lcs_ajax_nonce'; // Name of the nonce field
-    #isNonceRetrieval = true; // Whether to fetch a new nonce
 
     #isRunningAjax = false; // Flag to prevent concurrent requests
     #isRequestAsync = true; // Whether the request is asynchronous
@@ -75,7 +74,7 @@ class lcsAjaxRequest {
     timeout = 10000;
 
     /**
-     * Creates an instance of lcsAjaxRequest with initial configuration.
+     * Creates an instance of ajaxRequest with initial configuration.
      *
      * @param {string} url - The URL to send the request to.
      * @param {string} method - The HTTP method ('GET' or 'POST').
@@ -121,15 +120,29 @@ class lcsAjaxRequest {
             }
         });
 
-        if (this.#data !== undefined && this.#data !== null) {
-            if (typeof this.#data !== 'object' || Array.isArray(this.#data)) {
-                throw new Error('Invalid data: must be an object or FormData.');
-            }
+        // If data is not object or FormData, throw error
+        if (typeof this.#data !== 'object') {
+            throw new Error('Invalid data: must be an object or FormData.');
         }
 
         const validModels = ['fetch', 'xhr'];
         if (!validModels.includes(this.#model)) {
             throw new Error(`Invalid model: must be one of ${validModels.join(', ')}.`);
+        }
+
+        // If method is GET, append data as query parameters
+        if (this.#method === 'GET' && !isDataEmpty(this.#data)) {
+            const alreadySetQD = decodeURLQuery(this.#url);
+            let entireQD = {};
+            if (this.isFormData()) {
+                for ( const [k, v] of this.#data.entries() ) {
+                    entireQD[k] = v;
+                }
+            } else {
+                entireQD = { ...this.#data };
+            }
+            entireQD = { ...alreadySetQD, ...entireQD };
+            this.#url = this.#url.split('?')[0] + '?' + encodeURLQuery(entireQD);
         }
     }
 
@@ -175,33 +188,38 @@ class lcsAjaxRequest {
             this.#method = method;
             this.#headers = headers;
 
-            this.#validateConfigs();
-
             const isFormData = this.isFormData();
             let isSecureRequest = true;
 
             if (isFormData) {
-                if (!this.#data.has('secure')) {
-                    this.#data.append('secure', true);
+                if (!this.#data.has('SECURE')) {
+                    this.#data.append('SECURE', true);
                 }
-                if (this.#data.get('secure') === false) {
+                if (this.#data.get('SECURE') === false || this.#data.get('SECURE') === false.toString()) {
                     isSecureRequest = false;
                 }
             } else {
                 this.#data = this.#data || {}; // Ensure data is an object if unset
-                if (!('secure' in this.#data)) {
-                    this.#data.secure = true;
+                if (!('SECURE' in this.#data)) {
+                    this.#data.SECURE = true;
                 }
-                if (this.#data.secure === false) {
+                if (this.#data.SECURE === false) {
                     isSecureRequest = false;
                 }
             }
 
             if (isSecureRequest) {
-                this.#isNonceRetrieval = true;
-                await this.validateNonce();
-            } else {
-                this.#isNonceRetrieval = false;
+                const isNonceValid = await this.#validateNonce();
+                if (!isNonceValid) throw new Error('Nonce verification failed.');
+
+                // insert flag NONCE_VERIFIED=true into this.#data
+                if (isFormData) {
+                    this.#data.set
+                        ? this.#data.set('NONCE_VERIFIED', true)
+                        : this.#data.append('NONCE_VERIFIED', true);
+                } else {
+                    this.#data.NONCE_VERIFIED = true;
+                }
             }
 
             return await this.fetch();
@@ -289,6 +307,7 @@ class lcsAjaxRequest {
             hooks.doAction(`ajaxRequestIsBusy`);
             await new Promise(resolve => setTimeout(resolve, 100)); // Simple throttling
         }
+
         this.#isRunningAjax = true;
 
         try {
@@ -410,7 +429,7 @@ class lcsAjaxRequest {
      * @param {object|FormData} data - The data to send.
      */
     setData(data) {
-        if (data !== null && typeof data !== 'object') {
+        if (typeof data !== 'object') {
             throw new Error('Invalid data type: must be an object or FormData.');
         }
         this.#data = data;
@@ -423,6 +442,18 @@ class lcsAjaxRequest {
      */
     setUrl(url) {
         this.#url = url;
+    }
+
+    /**
+     * Sets the nonce URL for nonce validation requests.
+     *
+     * @param {string} url - The URL to use for nonce validation.
+     */
+    setNonceUrl(url) {
+        if (typeof url !== 'string' || url.trim() === '') {
+            throw new Error('Invalid nonce URL: must be a non-empty string.');
+        }
+        this.#nonce_url = url;
     }
 
     /**
@@ -479,7 +510,7 @@ class lcsAjaxRequest {
      * @param {string} hid - The hooks ID to set.
      * @throws {Error} If the hooks ID is empty or already exists.
      */
-    setHID(hid) {
+    setHooksId(hid) {
         if (isDataEmpty(hid)) {
             throw new Error('Hooks ID cannot be empty.');
         }
@@ -506,82 +537,92 @@ class lcsAjaxRequest {
     }
 
     /**
-     * Fetches or validates a nonce for secure requests to prevent CSRF attacks.
-     * Appends the nonce to the request data and stores it globally in `lcs_ajax_object.nonce`.
+     * Validates and refreshes a security nonce before performing
+     * any sensitive AJAX operation, helping to prevent CSRF and replay attacks.
      *
-     * @param {string} [nonceName=this.#nonce_name] - The name of the nonce field.
-     * @param {string} [url=this.#nonce_url] - The URL to fetch the nonce from.
-     * @param {boolean} [isNonceRetrieval=this.#isNonceRetrieval] - True to fetch a new nonce.
-     * @returns {Promise<string>} Resolves with the nonce value.
+     * How it works:
+     * 1. Sends the current nonce (from `lcs_ajax_object.nonce`) to the server.
+     * 2. The server verifies the nonce and issues a new one.
+     * 3. The new nonce replaces the old one both in the global object
+     *    and in the current request payload (`this.#data`).
+     *
+     * Supports both Fetch API and XMLHttpRequest.
+     *
+     * @returns {Promise<boolean>}
+     *   Resolves with `true` if verification succeeded, otherwise rejects with `false` or an Error.
+     *
+     * @example
+     * // Typical usage before secure requests:
+     * await this.validateNonce('/api/verify-nonce.php')
+     *   .then(() => this.sendSecureData())
+     *   .catch(() => alert('Session expired or invalid nonce.'));
+     *
+     * @example
+     * // Inside a class with FormData payloads:
+     * if (this.isFormData()) {
+     *   this.#data.append('NONCE', lcs_ajax_object.nonce);
+     * } else {
+     *   this.#data.NONCE = lcs_ajax_object.nonce;
+     * }
      */
-    async validateNonce(nonceName = this.#nonce_name, url = this.#nonce_url, isNonceRetrieval = this.#isNonceRetrieval) {
+    async #validateNonce() {
         return new Promise((resolve, reject) => {
-            if (this.isFormData() && this.#data.has('nonce_name')) {
-                nonceName = this.#data.get('nonce_name');
-            } else if (!this.isFormData() && this.#data && 'nonce_name' in this.#data) {
-                nonceName = this.#data.nonce_name;
-            }
+            lcs_ajax_object = lcs_ajax_object || {};
 
-            this.#nonce_name = nonceName;
-            this.#nonce_url = url;
-            this.#isNonceRetrieval = isNonceRetrieval;
-
-            const requestData = {
-                nonce_name: this.#nonce_name,
-                isNonceRetrieval: this.#isNonceRetrieval,
-            };
+            const NONCE = lcs_ajax_object.nonce;
+            if (!NONCE) return reject(new Error('Missing nonce.'));
 
             const handleResponse = (responseData) => {
-                if (responseData.success) {
-                    const nonce = responseData.data;
-                    if (this.isFormData()) {
-                        this.#data.append('nonce', nonce);
-                        this.#data.append('nonce_name', this.#nonce_name);
-                    } else {
-                        this.#data.nonce = nonce;
-                        this.#data.nonce_name = this.#nonce_name;
-                    }
-                    lcs_ajax_object = lcs_ajax_object || {};
-                    lcs_ajax_object.nonce = nonce;
-                    resolve(nonce);
-                } else {
-                    reject(new Error(responseData.message || 'Nonce retrieval failed.'));
+                if (!responseData || typeof responseData !== 'object') {
+                    return reject(new Error('Invalid nonce response format.'));
                 }
+
+                const { success, data: newNonce } = responseData;
+
+                if (!newNonce) {
+                    return reject(new Error('Server did not return a new nonce.'));
+                }
+
+                // Update nonce globally
+                lcs_ajax_object.nonce = newNonce;
+                success ? resolve(true) : reject(false);
             };
 
+            const payload = JSON.stringify({ 
+                NONCE: NONCE, 
+                SECURE: this.isFormData() ? (this.#data.get('SECURE') || true) : (this.#data.SECURE || true) 
+            });
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+
+            // Remove potential query arg in the url
+            this.#nonce_url = this.#nonce_url.split('?')[0];
+
             if (this.#model === 'fetch') {
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify(requestData),
-                })
-                    .then(response => response.json())
+                fetch(this.#nonce_url, { method: 'POST', headers, body: payload })
+                    .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
                     .then(handleResponse)
-                    .catch(error => reject(new Error(`Nonce request failed: ${error.message}`)));
+                    .catch(err => reject(new Error(`Nonce request failed: ${err.message}`)));
             } else {
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', url, true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
+                xhr.open('POST', this.#nonce_url, true);
+                for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
                 xhr.onload = () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
                         try {
-                            const responseData = JSON.parse(xhr.responseText);
-                            handleResponse(responseData);
-                        } catch (e) {
+                            handleResponse(JSON.parse(xhr.responseText));
+                        } catch {
                             reject(new Error('Failed to parse nonce response.'));
                         }
                     } else {
                         reject(new Error(`Nonce XHR failed: ${xhr.status} ${xhr.statusText}`));
                     }
                 };
-
                 xhr.onerror = () => reject(new Error('Network error during nonce request.'));
-                xhr.send(JSON.stringify(requestData));
+                xhr.send(payload);
             }
         });
     }
@@ -663,12 +704,99 @@ class lcsAjaxRequest {
         return newFormData;
     }
 
+    /**
+     * Gets the current data payload.
+     * @returns {object|FormData} The current request data.
+     */
+    getData() {
+        return this.#data;
+    }
+
+    /**
+     * Gets the current target URL.
+     * @returns {string} The current URL.
+     */
+    getUrl() {
+        return this.#url;
+    }
+
+    /**
+     * Gets the current HTTP method.
+     * @returns {string} The current method ('GET' or 'POST').
+     */
+    getMethod() {
+        return this.#method;
+    }
+
+    /**
+     * Gets the current headers.
+     * @returns {object} The current headers object.
+     */
+    getHeaders() {
+        return { ...this.#headers };
+    }
+
+    /**
+     * Gets the current request model.
+     * @returns {string} The current model ('fetch' or 'xhr').
+     */
+    getModel() {
+        return this.#model;
+    }
+
+    /**
+     * Gets the current nonce URL.
+     * @returns {string} The current nonce URL.
+     */
+    getNonceUrl() {
+        return this.#nonce_url;
+    }
+
+    /**
+     * Gets whether the request is currently running.
+     * @returns {boolean} True if a request is in progress.
+     */
+    isRunning() {
+        return this.#isRunningAjax;
+    }
+
+    /**
+     * Gets whether the request is set to async mode.
+     * @returns {boolean} True if request is asynchronous.
+     */
+    isAsync() {
+        return this.#isRequestAsync;
+    }
+
+    /**
+     * Gets whether the request is currently interrupted.
+     * @returns {boolean} True if request was interrupted.
+     */
+    isInterrupted() {
+        return this.#isAjaxInterrupted;
+    }
+
+    /**
+     * Gets whether the request will wait when offline.
+     * @returns {boolean} True if request will wait for reconnection.
+     */
+    isWaitingOffline() {
+        return this.#waitOffline;
+    }
+
+    /**
+     * Gets the current hooks ID.
+     * @returns {string} The current hooks ID.
+     */
+    getHooksId() {
+        return this.#hooksID;
+    }
+
 }
 
 /**
- * A singleton instance of lcsAjaxRequest for easy use throughout the application.
+ * A singleton instance of ajaxRequest for easy use throughout the application.
  *
  * @module ajaxRequest
  */
-export const ajaxRequest = new lcsAjaxRequest(lcs_ajax_object.ajaxurl, 'POST');
-export default lcsAjaxRequest;
+export const ajax = new ajaxRequest(lcs_ajax_object.ajaxurl, 'POST');

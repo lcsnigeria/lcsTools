@@ -462,3 +462,141 @@ export function spreadToArray(data, splitData = false, separator = " ") {
   // Fallback
   return [data];
 }
+
+/**
+ * Encode an object into a URL-encoded query string.
+ *
+ * Supports:
+ * - Nested objects and arrays
+ * - Optional URL encoding
+ * - Custom separators
+ *
+ * @param {Object} data - The data to encode (must be a plain object).
+ * @param {string} [prefix=''] - Optional prefix for keys.
+ * @param {string} [sep='&'] - Separator between pairs.
+ * @param {string} [key=''] - Internal use for nested keys.
+ * @param {boolean} [urlencode=true] - Whether to URL-encode keys/values.
+ * @returns {string} - Encoded query string.
+ *
+ * @example
+ * const params = {
+ *   user: { name: 'John Doe', roles: ['admin', 'editor'] },
+ *   page: 2
+ * };
+ * console.log(encodeURLQuery(params));
+ * // user[name]=John%20Doe&user[roles][0]=admin&user[roles][1]=editor&page=2
+ */
+export function encodeURLQuery(data, prefix = '', sep = '&', key = '', urlencode = true) {
+    // Must be a plain object (arrays only valid as nested)
+    if (Object.prototype.toString.call(data) !== '[object Object]') {
+        throw new TypeError('Input data must be a plain object with key-value pairs.');
+    }
+
+    const query = [];
+
+    for (const [k, v] of Object.entries(data)) {
+        const encodedKey = urlencode ? encodeURIComponent(k) : k;
+        const composedKey = key ? `${key}[${encodedKey}]` : encodedKey;
+
+        if (v && typeof v === 'object') {
+            // Allow nested arrays/objects
+            const nested = encodeURLQuery(v, prefix, sep, composedKey, urlencode);
+            if (nested) query.push(nested);
+        } else {
+            const encodedValue = urlencode ? encodeURIComponent(String(v)) : String(v);
+            query.push(`${composedKey}=${encodedValue}`);
+        }
+    }
+
+    return query.join(sep);
+}
+
+/**
+ * Decode a URL-encoded query string or full URL into a deeply nested JavaScript object.
+ *
+ * This utility intelligently extracts and parses key–value pairs from:
+ * - A full URL (e.g., "https://example.com/page?user[name]=John&page=2")
+ * - A standalone query string (e.g., "user[name]=John&page=2")
+ *
+ * It supports:
+ * - **Nested object notation** via bracket syntax (e.g., `user[name]=John`)
+ * - **Array-like keys** using numeric bracket notation (e.g., `user[roles][0]=admin`)
+ * - **Full URL inputs** (extracts only the query part after `?`)
+ * - **Graceful handling** of invalid or non-query inputs (e.g., `/file.php` → `{}`)
+ *
+ * Non-query-like strings (those without `=` and not containing `?`) are ignored,
+ * preventing false positives for paths such as `/ae.php` or `/assets/main.css`.
+ *
+ * @function decodeURLQuery
+ * @param {string} queryStringOrUrl
+ *   A raw query string (e.g., `"a=1&b=2"`) or a full URL containing a query section.
+ *   Must be a non-empty string; otherwise returns an empty object.
+ *
+ * @returns {Object}
+ *   A nested associative object representing the decoded query parameters.
+ *   Each key and subkey is automatically built according to its bracket structure.
+ *
+ * @example <caption>Decode from a full URL</caption>
+ * decodeURLQuery('https://example.com/page?user[name]=John&page=2');
+ * // → { user: { name: 'John' }, page: '2' }
+ *
+ * @example <caption>Decode from a plain query string</caption>
+ * decodeURLQuery('page=2&sort=desc');
+ * // → { page: '2', sort: 'desc' }
+ *
+ * @example <caption>Decode with nested array keys</caption>
+ * decodeURLQuery('user[roles][0]=admin&user[roles][1]=editor');
+ * // → { user: { roles: ['admin', 'editor'] } }
+ *
+ * @example <caption>Gracefully ignore non-query inputs</caption>
+ * decodeURLQuery('/ae.php');
+ * // → {}
+ *
+ * @example <caption>Accept a valid key=value format without "?"</caption>
+ * decodeURLQuery('user[name]=John');
+ * // → { user: { name: 'John' } }
+ *
+ * @note
+ * This function uses the native `URLSearchParams` interface for decoding
+ * and automatically builds nested objects or arrays depending on key syntax.
+ * Non-string or empty inputs always return an empty object.
+ */
+export function decodeURLQuery(queryStringOrUrl) {
+    if (typeof queryStringOrUrl !== 'string' || !queryStringOrUrl.trim()) return {};
+
+    let queryPart = '';
+
+    // Extract query part if URL contains '?'
+    if (queryStringOrUrl.includes('?')) {
+        queryPart = queryStringOrUrl.split('?')[1].split('#')[0];
+    } else {
+        // Otherwise, treat as a possible query string if it looks like key=value
+        if (/^[^\/]+\=/.test(queryStringOrUrl)) {
+            queryPart = queryStringOrUrl;
+        } else {
+            return {}; // e.g. "/ae.php" → not a query string
+        }
+    }
+
+    const params = new URLSearchParams(queryPart);
+    const result = {};
+
+    for (const [fullKey, value] of params.entries()) {
+        const keys = fullKey.split(/\[|\]/).filter(Boolean);
+        let current = result;
+
+        keys.forEach((key, i) => {
+            const isLast = i === keys.length - 1;
+            if (isLast) {
+                current[key] = value;
+            } else {
+                if (!current[key] || typeof current[key] !== 'object') {
+                    current[key] = isNaN(keys[i + 1]) ? {} : [];
+                }
+                current = current[key];
+            }
+        });
+    }
+
+    return result;
+}
