@@ -330,6 +330,12 @@ export class ajaxRequest {
                     let responseData = contentType?.includes('application/json') ? await response.json() : await response.text();
 
                     if (!response.ok) {
+                        if (response.status === 400) {
+                            hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, responseData);
+                            hooks.doAction(`ajaxRequestFailedOnError`);
+                            return responseData;
+                        }
+                        
                         const error = new Error(responseData?.message || responseData?.data || `HTTP error: ${response.status}`);
                         hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
                         hooks.doAction(`ajaxRequestFailedOnError`);
@@ -378,6 +384,11 @@ export class ajaxRequest {
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 hooks.doAction(`ajaxRequestSucceeded_${this.#hooksID}`, responseData);
                                 hooks.doAction(`ajaxRequestSucceeded`);
+                                resolve(responseData);
+                            } else if (xhr.status === 400) {
+                                const error = new Error(responseData?.message || responseData?.data || `XHR error: ${xhr.status}`);
+                                hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
+                                hooks.doAction(`ajaxRequestFailedOnError`);
                                 resolve(responseData);
                             } else {
                                 const error = new Error(responseData?.message || responseData?.data || `XHR error: ${xhr.status}`);
@@ -492,6 +503,18 @@ export class ajaxRequest {
             throw new Error(`Invalid model: must be one of ${validModels.join(', ')}.`);
         }
         this.#model = model;
+    }
+
+    /**
+     * Sets the timeout duration for the request.
+     *
+     * @param {number} timeout - Timeout in milliseconds.
+     */
+    setTimeout(timeout) {
+        if (typeof timeout !== 'number' || timeout <= 0) {
+            throw new Error('Invalid timeout: must be a positive number.');
+        }
+        this.timeout = timeout;
     }
 
     /**

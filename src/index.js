@@ -16,6 +16,9 @@ export * from './js/workingTools/functionOps.js';
 
 // Storage
 export * from './js/dataStorage/localDatabase.js';
+export * from './js/dataStorage/localStorage.js';
+export * from './js/dataStorage/SessionStorage.js';
+export * from './js/dataStorage/Cookies.js';
 
 // Tools
 export * from './js/workingTools/arrayOps.js';
@@ -28,6 +31,7 @@ export * from './js/workingTools/colorOps.js';
 export * from './js/workingTools/urlOps.js';
 export * from './js/workingTools/execUtilities.js';
 export * from './js/locationTools.js';
+export * from './js/workingTools/contentUtils.js';
 
 // Alerts & Logs
 export * from './js/alertsAndLogs/alerts.js';
