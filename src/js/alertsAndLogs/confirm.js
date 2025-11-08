@@ -1,3 +1,5 @@
+import { blackColor, dimmedBlackColor, lightGreyColor, primaryColor, whiteColor } from "../initializations/loadCSS";
+
 /**
  * Displays a customizable confirmation dialog.
  *
