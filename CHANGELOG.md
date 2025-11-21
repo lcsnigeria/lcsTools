@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.59](https://github.com/lcsnigeria/lcsTools/compare/v0.0.58...v0.0.59) (2025-11-21)
+
+
+### Features
+
+* Add date and url ops tools ([db05185](https://github.com/lcsnigeria/lcsTools/commit/db0518592085ad6a4519a189af55cc8bbc738670))
+* Add formatTime function for human-readable date/time formatting ([9e3654a](https://github.com/lcsnigeria/lcsTools/commit/9e3654ab715912ca040c611a06f601fa9986328c))
+* Enhance CSS variable management and import styles ([bb159f0](https://github.com/lcsnigeria/lcsTools/commit/bb159f01f0c1acfef8e51841e07053a4f99e8950))
+
 ### [0.0.58](https://github.com/lcsnigeria/lcsTools/compare/v0.0.57...v0.0.58) (2025-11-05)
 
 
