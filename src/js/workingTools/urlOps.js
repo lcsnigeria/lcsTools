@@ -36,3 +36,44 @@ export function setNewHistory(state = {}, title, url) {
 
     history.pushState(state, title, url);
 }
+
+/**
+ * Performs a programmatic hard refresh of the current page.
+ * 
+ * This method forces the browser to fetch a fresh copy from the server
+ * by adding or updating a cache-busting query parameter (`t`) with the
+ * current timestamp. It preserves all existing query parameters and hash fragments.
+ * 
+ * Usage:
+ * ```js
+ * hardRefresh(); // Refreshes the page immediately
+ * ```
+ *
+ * Key Points:
+ * - Existing query parameters are preserved.
+ * - If a parameter named 't' already exists, it will be updated.
+ * - Any URL hash (e.g., #section1) is preserved.
+ * - Works reliably across modern browsers to bypass cache.
+ * - Safe for both static pages and dynamic single-page applications.
+ * 
+ * @example
+ * // Hard refresh the current page
+ * hardRefresh();
+ *
+ * @example
+ * // Can be called conditionally
+ * if (needsFreshData) {
+ *     hardRefresh();
+ * }
+ *
+ * @returns {void} This function does not return a value; it reloads the page.
+ */
+export function hardRefresh() {
+    const url = new URL(window.location.href);
+
+    // Add or update the 't' cache-busting parameter with current timestamp
+    url.searchParams.set('t', Date.now());
+
+    // Redirect to the updated URL, triggering a full page reload
+    window.location.href = url.toString();
+}

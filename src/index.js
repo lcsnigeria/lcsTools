@@ -32,6 +32,7 @@ export * from './js/workingTools/urlOps.js';
 export * from './js/workingTools/execUtilities.js';
 export * from './js/locationTools.js';
 export * from './js/workingTools/contentUtils.js';
+export * from './js/workingTools/dateOps.js';
 
 // Alerts & Logs
 export * from './js/alertsAndLogs/alerts.js';
