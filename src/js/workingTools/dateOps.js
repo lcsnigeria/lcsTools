@@ -95,7 +95,7 @@ export function formatTime(dateInput, use24Hour = false) {
  * formatDate(1763078400, { explanatory: true, explanatoryStyle: 'direct' }) // "Yesterday"
  * formatDate(1762992000, { explanatory: true, explanatoryStyle: 'direct' }) // "Thursday"
  */
-function formatDate(dateInput, configs = {}) {
+export function formatDate(dateInput, configs = {}) {
   const {
     explanatory = false,
     explanatoryStyle = 'informal',
