@@ -37,6 +37,7 @@ export * from './js/workingTools/dateOps.js';
 // Alerts & Logs
 export * from './js/alertsAndLogs/alerts.js';
 export * from './js/alertsAndLogs/confirm.js';
+export * from './js/alertsAndLogs/prompt.js';
 
 // UI/Element Tools/Manipulation
 export * from './js/workingTools/elementOps/ops.js';

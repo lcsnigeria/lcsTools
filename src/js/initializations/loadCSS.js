@@ -15,6 +15,7 @@ import '../../css/fileOperations/textDoc.css';
 
 
 import '../../css/alertsAndLogs/alerts.css';
+import '../../css/alertsAndLogs/prompt.css';
 
 
 import '../../css/formOperations/forms.css';
