@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.61](https://github.com/lcsnigeria/lcsTools/compare/v0.0.60...v0.0.61) (2025-11-26)
+
+
+### Features
+
+* add prompt dialog functionality and styles ([cedb9bc](https://github.com/lcsnigeria/lcsTools/commit/cedb9bc4cbbdcf4f122fbbf6c7d900f24587d10d))
+* exports function: formatDate ([9d759f6](https://github.com/lcsnigeria/lcsTools/commit/9d759f612e69154824ca1c167865ceea48cbca4a))
+
 ### [0.0.60](https://github.com/lcsnigeria/lcsTools/compare/v0.0.59...v0.0.60) (2025-11-21)
 
 ### [0.0.59](https://github.com/lcsnigeria/lcsTools/compare/v0.0.58...v0.0.59) (2025-11-21)
