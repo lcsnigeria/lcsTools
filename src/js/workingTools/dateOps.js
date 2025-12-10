@@ -317,7 +317,7 @@ export function formatDateAdjustment(dateInput, showTime = true, showMI = true, 
       'October', 'November', 'December'
     ];
 
-    const day = getDayWithSuffix(inputDate.getDate());
+    const day = inputDate.getDate(); // getDayWithSuffix(inputDate.getDate());
     const month = monthNames[inputDate.getMonth()];
     
     if (showTime) {
@@ -333,7 +333,7 @@ export function formatDateAdjustment(dateInput, showTime = true, showMI = true, 
     'October', 'November', 'December'
   ];
 
-  const day = getDayWithSuffix(inputDate.getDate());
+  const day = inputDate.getDate(); //getDayWithSuffix(inputDate.getDate());
   const month = monthNames[inputDate.getMonth()];
   const year = inputDate.getFullYear();
   
