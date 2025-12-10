@@ -5,6 +5,9 @@ import { isDataEmpty, isDataObject } from '../workingTools/dataTypes.js';
 const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]'); // Get the AJAX object meta tag.
 let lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {}; // Parse the AJAX object from the meta tag.
 
+// Flag to prevent concurrent requests
+let isRunningAjax = false;
+
 /**
  * A utility class for making AJAX requests with support for Fetch API and XMLHttpRequest (XHR).
  * It provides secure request handling with nonce validation to prevent CSRF attacks and supports
@@ -38,7 +41,6 @@ export class ajaxRequest {
 
     #nonce_url;             // URL for nonce retrieval, defaults to #url
 
-    #isRunningAjax = false; // Flag to prevent concurrent requests
     #isRequestAsync = true; // Whether the request is asynchronous
     #isAjaxInterrupted = false; // Tracks if AJAX was interrupted due to offline
 
@@ -302,13 +304,13 @@ export class ajaxRequest {
             this.#isAjaxInterrupted = false;
         }
 
-        while (this.#isRunningAjax) {
+        while (isRunningAjax) {
             hooks.doAction(`ajaxRequestIsBusy_${this.#hooksID}`);
             hooks.doAction(`ajaxRequestIsBusy`);
             await new Promise(resolve => setTimeout(resolve, 100)); // Simple throttling
         }
 
-        this.#isRunningAjax = true;
+        isRunningAjax = true;
 
         try {
             if (this.#model === 'fetch') {
@@ -428,7 +430,7 @@ export class ajaxRequest {
                 throw error;
             }
         } finally {
-            this.#isRunningAjax = false;
+            isRunningAjax = false;
             hooks.doAction(`ajaxRequestCompleted_${this.#hooksID}`);
             hooks.doAction(`ajaxRequestCompleted`);
         }
@@ -780,7 +782,7 @@ export class ajaxRequest {
      * @returns {boolean} True if a request is in progress.
      */
     isRunning() {
-        return this.#isRunningAjax;
+        return isRunningAjax;
     }
 
     /**

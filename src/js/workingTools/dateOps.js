@@ -178,3 +178,167 @@ export function formatDate(dateInput, configs = {}) {
   // Non-explanatory: simple full date
   return fullDateString(date);
 }
+
+/**
+ * Format date/time with intelligent human-readable output
+ * 
+ * @param {string|Date} dateInput - Date string (e.g., '2025-12-09 08:03:24') or Date object
+ * @param {boolean} showTime - Whether to include time in the output (default: true)
+ * @param {boolean} showMI - Show meridiem indicators (AM/PM) for 12-hour format (default: true)
+ * @param {boolean} use24Hrs - Use 24-hour format instead of 12-hour (default: false)
+ * @returns {string} Formatted date/time string
+ * 
+ * @example
+ * formatDateAdjustment('2025-12-09 08:03:24', true, true, false)
+ * // Returns: "09:23 AM" (if today)
+ * // Returns: "Yesterday, 09:23 AM" (if yesterday)
+ * // Returns: "8 December 2025, 09:23 AM" (if older)
+ */
+export function formatDateAdjustment(dateInput, showTime = true, showMI = true, use24Hrs = false) {
+  // Parse the input date
+  let inputDate;
+  
+  if (dateInput instanceof Date) {
+    inputDate = dateInput;
+  } else if (typeof dateInput === 'string') {
+    // Handle different date formats
+    // Replace space with 'T' for ISO format compatibility if needed
+    const dateStr = dateInput.replace(' ', 'T');
+    inputDate = new Date(dateStr);
+  } else {
+    return 'Invalid date';
+  }
+
+  // Validate date
+  if (isNaN(inputDate.getTime())) {
+    return 'Invalid date';
+  }
+
+  const now = new Date();
+  const diffMs = now - inputDate;
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  // Helper function to format time
+  function format_Time(date) {
+    if (!showTime) return '';
+    
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    let meridiem = '';
+
+    if (!use24Hrs) {
+      meridiem = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12; // Convert to 12-hour format
+    }
+
+    const formattedHours = hours.toString().padStart(2, '0');
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+    
+    let timeStr = `${formattedHours}:${formattedMinutes}`;
+    
+    if (!use24Hrs && showMI) {
+      timeStr += ` ${meridiem}`;
+    }
+    
+    return timeStr;
+  }
+
+  // Helper function to get day with suffix
+  function getDayWithSuffix(day) {
+    if (day > 3 && day < 21) return day + 'th';
+    switch (day % 10) {
+      case 1: return day + 'st';
+      case 2: return day + 'nd';
+      case 3: return day + 'rd';
+      default: return day + 'th';
+    }
+  }
+
+  // Helper function to check if dates are on the same day
+  function isSameDay(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear() &&
+            date1.getMonth() === date2.getMonth() &&
+            date1.getDate() === date2.getDate();
+  }
+
+  // Helper function to get yesterday's date
+  function getYesterday() {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday;
+  }
+
+  // "Now" - within the last 30 seconds
+  if (diffSecs < 30) {
+    return 'Now';
+  }
+
+  // "X minutes ago" - within the last hour
+  if (diffMins < 60) {
+    if (diffMins === 1) return '1 minute ago';
+    return `${diffMins} minutes ago`;
+  }
+
+  // Today - show time only or "Today"
+  if (isSameDay(inputDate, now)) {
+    if (showTime) {
+      return format_Time(inputDate);
+    }
+    return 'Today';
+  }
+
+  // Yesterday
+  if (isSameDay(inputDate, getYesterday())) {
+    if (showTime) {
+      return `Yesterday, ${format_Time(inputDate)}`;
+    }
+    return 'Yesterday';
+  }
+
+  // Within the last 7 days - show day name
+  if (diffDays < 7) {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[inputDate.getDay()];
+    
+    if (showTime) {
+      return `${dayName}, ${format_Time(inputDate)}`;
+    }
+    return dayName;
+  }
+
+  // This year - show date without year
+  if (inputDate.getFullYear() === now.getFullYear()) {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 
+      'May', 'June', 'July', 'August', 'September', 
+      'October', 'November', 'December'
+    ];
+
+    const day = getDayWithSuffix(inputDate.getDate());
+    const month = monthNames[inputDate.getMonth()];
+    
+    if (showTime) {
+      return `${day} ${month}, ${format_Time(inputDate)}`;
+    }
+    return `${day} ${month}`;
+  }
+
+  // Older dates - show full date with year
+  const monthNames = [
+    'January', 'February', 'March', 'April', 
+    'May', 'June', 'July', 'August', 'September', 
+    'October', 'November', 'December'
+  ];
+
+  const day = getDayWithSuffix(inputDate.getDate());
+  const month = monthNames[inputDate.getMonth()];
+  const year = inputDate.getFullYear();
+  
+  if (showTime) {
+      return `${day} ${month} ${year}, ${format_Time(inputDate)}`;
+  }
+  return `${day} ${month} ${year}`;
+}
