@@ -2,167 +2,820 @@ import { hooks } from '../hooks.js';
 import { decodeURLQuery, encodeURLQuery } from '../workingTools/arrayOps.js';
 import { isDataEmpty, isDataObject } from '../workingTools/dataTypes.js';
 
-const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]'); // Get the AJAX object meta tag.
-let lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {}; // Parse the AJAX object from the meta tag.
-
-// Flag to prevent concurrent requests
-let isRunningAjax = false;
+// ============================================================================
+// GLOBAL STATE & INITIALIZATION
+// ============================================================================
 
 /**
- * A utility class for making AJAX requests with support for Fetch API and XMLHttpRequest (XHR).
- * It provides secure request handling with nonce validation to prevent CSRF attacks and supports
- * both JSON and FormData payloads. The class ensures that only one request runs at a time and
- * offers flexible configuration through setters.
+ * Retrieve AJAX configuration from meta tag injected by server.
+ * Expected format: { ajaxurl: string, nonce: string }
+ */
+const lcs_ajax_object_meta = document.querySelector('meta[name="lcs_ajax_object"]');
+let lcs_ajax_object = lcs_ajax_object_meta ? JSON.parse(lcs_ajax_object_meta.content) : {};
+
+/**
+ * Global lock to prevent concurrent AJAX requests.
+ * Only one request can be active at a time to avoid race conditions.
+ */
+let isRunningAjax = false;
+
+// ============================================================================
+// AJAX REQUEST CLASS
+// ============================================================================
+
+/**
+ * A robust AJAX request handler with nonce validation, offline handling,
+ * and support for both Fetch API and XMLHttpRequest.
+ *
+ * Key Features:
+ * - CSRF protection via automatic nonce validation
+ * - Offline detection with automatic retry on reconnection
+ * - Support for JSON and FormData payloads
+ * - Configurable timeouts and headers
+ * - Hook system for request lifecycle events
+ * - Single concurrent request enforcement
  *
  * @example
- * // Basic usage with JSON data
- * const ajax = new ajaxRequest('https://example.com/api', 'POST', {});
- * ajax.setData({ key: 'value' });
- * ajax.send().then(response => console.log(response)).catch(error => console.error(error));
+ * // Basic JSON request
+ * const ajax = new ajaxRequest('https://api.example.com/endpoint', 'POST');
+ * ajax.setData({ userId: 123, action: 'update' });
+ * const result = await ajax.send();
  *
  * @example
- * // Using FormData with Fetch model
+ * // FormData upload with custom timeout
  * const formData = new FormData();
- * formData.append('file', someFile);
- * const ajax = new lcsAjaxRequest('https://example.com/upload', 'POST', {});
+ * formData.append('file', fileInput.files[0]);
+ * const ajax = new ajaxRequest('/upload', 'POST');
  * ajax.setModel('fetch');
+ * ajax.setTimeout(30000);
  * ajax.setData(formData);
- * ajax.send();
+ * await ajax.send();
  */
 export class ajaxRequest {
-    /**
-     * PRIVATE PROPERTIES
-     */
-    #url;                   // The target URL for the request
-    #data = {};                  // The data payload (object or FormData)
-    #method;                // HTTP method ('GET' or 'POST')
-    #headers = {};          // Custom headers for the request
-    #model = 'xhr';         // Request model ('fetch' or 'xhr')
+    // ========================================================================
+    // PRIVATE PROPERTIES
+    // ========================================================================
 
-    #nonce_url;             // URL for nonce retrieval, defaults to #url
+    /** @type {string} Target URL for the request */
+    #url;
 
-    #isRequestAsync = true; // Whether the request is asynchronous
-    #isAjaxInterrupted = false; // Tracks if AJAX was interrupted due to offline
+    /** @type {Object|FormData} Request payload */
+    #data = {};
 
-    #waitOffline = false; // If true, waits for reconnection before retrying AJAX
+    /** @type {string} HTTP method (GET or POST) */
+    #method;
 
-    #requestInstance;       // Stores the XHR instance for 'xhr' model
+    /** @type {Object} Custom request headers */
+    #headers = {};
 
+    /** @type {string} Transport model: 'fetch' or 'xhr' */
+    #model = 'xhr';
+
+    /** @type {string} URL for nonce validation endpoint */
+    #nonce_url;
+
+    /** @type {boolean} Whether request should be async (XHR only) */
+    #isRequestAsync = true;
+
+    /** @type {boolean} Tracks if request was interrupted due to offline state */
+    #isAjaxInterrupted = false;
+
+    /** @type {boolean} Whether to wait for reconnection when offline */
+    #waitOffline = false;
+
+    /** @type {XMLHttpRequest|null} XHR instance for 'xhr' model */
+    #requestInstance = null;
+
+    /** @type {string} Unique identifier for hook events */
     #hooksID = '';
 
-    /**
-     * PUBLIC PROPERTIES
-     */
+    // ========================================================================
+    // PUBLIC PROPERTIES
+    // ========================================================================
 
     /**
-     * @property {number} maxWaitTime
-     * The maximum time in milliseconds to wait for internet reconnection before failing the AJAX request.
-     * Default is 30000 (30 seconds).
+     * Maximum time (ms) to wait for internet reconnection.
+     * @type {number}
+     * @default 30000
      */
     maxWaitTime = 30000;
 
     /**
-     * @property {number} pollInterval
-     * The interval in milliseconds to poll for internet reconnection when offline.
-     * Default is 100 ms.
+     * Polling interval (ms) to check for reconnection.
+     * @type {number}
+     * @default 100
      */
     pollInterval = 100;
 
     /**
-     * @property {number} timeout
-     * The maximum time in milliseconds before the AJAX request times out.
-     * Default is 10000 (10 seconds).
+     * Request timeout duration (ms).
+     * @type {number}
+     * @default 10000
      */
     timeout = 10000;
 
+    // ========================================================================
+    // CONSTRUCTOR
+    // ========================================================================
+
     /**
-     * Creates an instance of ajaxRequest with initial configuration.
+     * Creates a new AJAX request instance.
      *
-     * @param {string} url - The URL to send the request to.
-     * @param {string} method - The HTTP method ('GET' or 'POST').
-     * @param {object} headers - Custom headers to include in the request.
+     * @param {string} url - Target URL for the request
+     * @param {string} method - HTTP method ('GET' or 'POST')
+     * @param {Object} [headers={}] - Additional headers to include
+     * @throws {Error} If url is empty or method is invalid
      */
     constructor(url, method, headers = {}) {
-        // URL
+        // Validate and set URL
+        if (typeof url !== 'string' || url.trim() === '') {
+            throw new Error('Constructor error: URL must be a non-empty string.');
+        }
         this.#url = url;
 
-        // METHOD
+        // Validate and set method
+        const validMethods = ['GET', 'POST'];
+        if (!validMethods.includes(method)) {
+            throw new Error(`Constructor error: Method must be one of ${validMethods.join(', ')}.`);
+        }
         this.#method = method;
 
-        // HEADERS
-        this.#headers = !isDataEmpty(headers) && isDataObject(headers) ? headers : {};
+        // Validate and set headers
+        if (!isDataEmpty(headers) && !isDataObject(headers)) {
+            throw new Error('Constructor error: Headers must be a plain object.');
+        }
+        this.#headers = headers;
 
-        // NONCE URL
-        this.#nonce_url = url; // Nonce URL defaults to the request URL
+        // Default nonce URL to request URL
+        this.#nonce_url = url;
+    }
+
+    // ========================================================================
+    // CORE REQUEST METHODS
+    // ========================================================================
+
+    /**
+     * Sends the AJAX request with optional parameter overrides.
+     *
+     * Flow:
+     * 1. Validate and prepare data (add SECURE flag if needed)
+     * 2. Validate nonce for secure requests
+     * 3. Execute request via fetch()
+     * 4. Return standardized response
+     *
+     * @param {Object|FormData} [data] - Data to send (uses instance data if omitted)
+     * @param {string} [url] - Target URL (uses instance URL if omitted)
+     * @param {string} [method] - HTTP method (uses instance method if omitted)
+     * @param {Object} [headers] - Headers (uses instance headers if omitted)
+     * @returns {Promise<Object>} Response object with { success, data, message, error? }
+     * @throws {Error} Never throws - all errors are returned in response object
+     */
+    async send(data = this.#data, url = this.#url, method = this.#method, headers = this.#headers) {
+        try {
+            // Update instance properties with provided values
+            this.#data = data;
+            this.#url = url;
+            this.#method = method;
+            this.#headers = headers;
+
+            const isFormData = this.isFormData();
+            let isSecureRequest = true;
+
+            // Ensure SECURE flag exists in payload
+            if (isFormData) {
+                if (!this.#data.has('SECURE')) {
+                    this.#data.append('SECURE', 'true');
+                }
+                // Check if explicitly set to false (string or boolean)
+                const secureValue = this.#data.get('SECURE');
+                if (secureValue === 'false' || secureValue === false || secureValue === 'False') {
+                    isSecureRequest = false;
+                }
+            } else {
+                // Ensure data is an object
+                this.#data = this.#data || {};
+                if (!('SECURE' in this.#data)) {
+                    this.#data.SECURE = true;
+                }
+                if (this.#data.SECURE === false || this.#data.SECURE === 'false') {
+                    isSecureRequest = false;
+                }
+            }
+
+            // Validate nonce for secure requests
+            if (isSecureRequest) {
+                const isNonceValid = await this.#validateNonce();
+                if (!isNonceValid) {
+                    return {
+                        success: false,
+                        data: null,
+                        message: 'Security validation failed. Your session may have expired.',
+                        error: new Error('Nonce verification failed')
+                    };
+                }
+
+                // Mark nonce as verified in payload
+                if (isFormData) {
+                    if (this.#data.set) {
+                        this.#data.set('NONCE_VERIFIED', 'true');
+                    } else {
+                        this.#data.append('NONCE_VERIFIED', 'true');
+                    }
+                } else {
+                    this.#data.NONCE_VERIFIED = true;
+                }
+            }
+
+            // Execute the actual request
+            return await this.fetch();
+
+        } catch (error) {
+            // Catch any unexpected errors and return standardized response
+            console.error('AJAX send() error:', error);
+            return {
+                success: false,
+                data: null,
+                message: error.message || 'An unexpected error occurred while sending the request.',
+                error: error
+            };
+        }
     }
 
     /**
-     * Validates all configuration properties before sending a request.
-     * Ensures URL, method, headers, data, and model are correctly set.
+     * Executes the AJAX request using configured transport (fetch or xhr).
+     *
+     * This method handles:
+     * - Offline detection and reconnection waiting
+     * - Request queuing (one request at a time)
+     * - Timeout management
+     * - Response parsing (JSON or text)
+     * - Error standardization
+     * - Hook triggers for all lifecycle events
+     *
      * @private
+     * @returns {Promise<Object>} Standardized response: { success, data, message, error? }
+     */
+    async fetch() {
+        // Validate all configuration before proceeding
+        this.#validateConfigs();
+
+        // ====================================================================
+        // OFFLINE HANDLING
+        // ====================================================================
+        if (!navigator.onLine) {
+            if (!this.#waitOffline) {
+                // Immediate failure if not waiting for reconnection
+                this.#triggerHooks('ajaxRequestFailedOnOffline');
+                return {
+                    success: false,
+                    data: null,
+                    message: 'No internet connection. Please check your network and try again.',
+                    error: new Error('Offline: No connection detected')
+                };
+            }
+
+            // Wait for reconnection with timeout
+            this.#isAjaxInterrupted = true;
+            this.#triggerHooks('ajaxRequestIsInterrupted');
+
+            try {
+                await this.#waitForOnline();
+            } catch (error) {
+                this.#triggerHooks('ajaxRequestFailedOnOffline');
+                return {
+                    success: false,
+                    data: null,
+                    message: `No internet connection restored within ${this.maxWaitTime / 1000} seconds.`,
+                    error: error
+                };
+            }
+        }
+
+        // Trigger resume hook if we just reconnected
+        if (navigator.onLine && this.#isAjaxInterrupted) {
+            this.#triggerHooks('ajaxRequestResumed');
+            this.#isAjaxInterrupted = false;
+        }
+
+        // ====================================================================
+        // REQUEST QUEUING
+        // ====================================================================
+        // Wait if another request is already running
+        while (isRunningAjax) {
+            this.#triggerHooks('ajaxRequestIsBusy');
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Acquire lock
+        isRunningAjax = true;
+
+        try {
+            // ================================================================
+            // EXECUTE REQUEST
+            // ================================================================
+            if (this.#model === 'fetch') {
+                return await this.#executeFetchRequest();
+            } else if (this.#model === 'xhr') {
+                return await this.#executeXHRRequest();
+            } else {
+                const error = new Error(`Invalid request model: ${this.#model}`);
+                this.#triggerHooks('ajaxRequestFailedOnInvalidModel', error);
+                return {
+                    success: false,
+                    data: null,
+                    message: 'Internal error: Invalid transport model configured.',
+                    error: error
+                };
+            }
+        } finally {
+            // Always release lock and trigger completion hook
+            isRunningAjax = false;
+            this.#triggerHooks('ajaxRequestCompleted');
+        }
+    }
+
+    // ========================================================================
+    // TRANSPORT IMPLEMENTATIONS
+    // ========================================================================
+
+    /**
+     * Executes request using Fetch API.
+     *
+     * @private
+     * @returns {Promise<Object>} Standardized response object
+     */
+    async #executeFetchRequest() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+        try {
+            const options = {
+                method: this.#method,
+                headers: this.#headers,
+                signal: controller.signal,
+            };
+
+            // Add body for POST requests
+            if (this.#method !== 'GET') {
+                options.body = this.isFormData() 
+                    ? this.#data 
+                    : JSON.stringify(this.#data);
+            }
+
+            const response = await fetch(this.#url, options);
+            clearTimeout(timeoutId);
+
+            // Parse response based on content type
+            const contentType = response.headers.get('content-type');
+            let responseData;
+
+            if (contentType?.includes('application/json')) {
+                try {
+                    responseData = await response.json();
+                } catch (parseError) {
+                    // JSON parsing failed - treat as error
+                    const error = new Error('Server returned invalid JSON response.');
+                    this.#triggerHooks('ajaxRequestFailedOnError', error);
+                    const textData = await response.text();
+                    return {
+                        success: false,
+                        data: null,
+                        textData,
+                        message: 'Failed to parse server response.',
+                        error: error
+                    };
+                }
+            } else {
+                // Non-JSON response (HTML, text, etc.)
+                const textData = await response.text();
+                responseData = {
+                    success: response.ok,
+                    data: null,
+                    textData,
+                    message: response.ok ? 'Request completed' : `HTTP error ${response.status}`
+                };
+            }
+
+            // Handle HTTP errors
+            if (!response.ok) {
+                const error = new Error(responseData?.message || `HTTP ${response.status}: ${response.statusText}`);
+                this.#triggerHooks('ajaxRequestFailedOnError', error);
+                
+                const realData = responseData?.data || null;
+                return {
+                    success: false,
+                    data: responseData?.data || null,
+                    textData: JSON.stringify(realData),
+                    message: responseData?.message || `Server returned error ${response.status}`,
+                    error: error
+                };
+            }
+
+            // Success!
+            this.#triggerHooks('ajaxRequestSucceeded', responseData);
+            
+            // Ensure response has expected structure
+            if (typeof responseData !== 'object' || responseData === null) {
+                return {
+                    success: true,
+                    data: responseData,
+                    textData: typeof responseData === 'string' ? responseData : JSON.stringify(responseData),
+                    message: 'Request completed successfully'
+                };
+            }
+
+            // Return parsed response (already has success, data, message)
+            return {
+                success: responseData.success !== false, // Default to true if not specified
+                data: responseData.data,
+                textData: JSON.stringify(responseData.data),
+                message: responseData.message || 'Request completed successfully',
+                ...responseData // Include any additional fields
+            };
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+
+            // Handle timeout specifically
+            if (error.name === 'AbortError') {
+                const timeoutError = new Error(`Request timed out after ${this.timeout / 1000} seconds.`);
+                this.#triggerHooks('ajaxRequestFailedOnTimeout', timeoutError);
+                return {
+                    success: false,
+                    data: null,
+                    textData: null,
+                    message: 'Request timed out. Please try again.',
+                    error: timeoutError
+                };
+            }
+
+            // Handle network errors
+            this.#triggerHooks('ajaxRequestFailedOnError', error);
+            return {
+                success: false,
+                data: null,
+                textData: null,
+                message: error.message || 'Network error occurred. Please check your connection.',
+                error: error
+            };
+        }
+    }
+
+    /**
+     * Executes request using XMLHttpRequest.
+     *
+     * @private
+     * @returns {Promise<Object>} Standardized response object
+     */
+    async #executeXHRRequest() {
+        return new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            this.#requestInstance = xhr;
+
+            xhr.open(this.#method, this.#url, this.#isRequestAsync);
+
+            // Set headers
+            for (const key in this.#headers) {
+                xhr.setRequestHeader(key, this.#headers[key]);
+            }
+
+            xhr.timeout = this.timeout;
+
+            // Handle response
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+
+                const contentType = xhr.getResponseHeader('content-type');
+                let responseData;
+
+                // Parse response based on content type
+                if (contentType?.includes('application/json')) {
+                    try {
+                        responseData = JSON.parse(xhr.responseText);
+                    } catch (parseError) {
+                        // JSON parsing failed
+                        const error = new Error('Server returned invalid JSON response.');
+                        this.#triggerHooks('ajaxRequestFailedOnError', error);
+                        resolve({
+                            success: false,
+                            data: null,
+                            textData: xhr.responseText,
+                            message: 'Failed to parse server response.',
+                            error: error
+                        });
+                        return;
+                    }
+                } else {
+                    // Non-JSON response
+                    responseData = {
+                        success: xhr.status >= 200 && xhr.status < 300,
+                        data: xhr.responseText,
+                        textData: xhr.responseText,
+                        message: `HTTP ${xhr.status}`
+                    };
+                }
+
+                // Handle success
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    this.#triggerHooks('ajaxRequestSucceeded', responseData);
+                    
+                    // Ensure response has expected structure
+                    if (typeof responseData !== 'object' || responseData === null) {
+                        resolve({
+                            success: true,
+                            data: responseData,
+                            textData: typeof responseData === 'string' ? responseData : JSON.stringify(responseData),
+                            message: 'Request completed successfully'
+                        });
+                        return;
+                    }
+
+                    resolve({
+                        success: responseData.success !== false,
+                        data: responseData.data,
+                        textData: JSON.stringify(responseData.data),
+                        message: responseData.message || 'Request completed successfully',
+                        ...responseData
+                    });
+                    return;
+                }
+
+                // Handle HTTP errors
+                const error = new Error(responseData?.message || `HTTP ${xhr.status}: ${xhr.statusText}`);
+                this.#triggerHooks('ajaxRequestFailedOnError', error);
+                resolve({
+                    success: false,
+                    data: responseData?.data || null,
+                    textData: JSON.stringify(responseData?.data || null),
+                    message: responseData?.message || `Server returned error ${xhr.status}`,
+                    error: error
+                });
+            };
+
+            // Handle network error
+            xhr.onerror = () => {
+                const error = new Error('Network error during XHR request.');
+                this.#triggerHooks('ajaxRequestFailedOnError', error);
+                resolve({
+                    success: false,
+                    data: null,
+                    textData: null,
+                    message: 'Network error occurred. Please check your connection.',
+                    error: error
+                });
+            };
+
+            // Handle timeout
+            xhr.ontimeout = () => {
+                const error = new Error(`Request timed out after ${this.timeout / 1000} seconds.`);
+                this.#triggerHooks('ajaxRequestFailedOnTimeout', error);
+                resolve({
+                    success: false,
+                    data: null,
+                    textData: null,
+                    message: 'Request timed out. Please try again.',
+                    error: error
+                });
+            };
+
+            // Send request
+            if (this.#method === 'GET') {
+                xhr.send();
+            } else if (this.isFormData()) {
+                xhr.send(this.#data);
+            } else {
+                xhr.send(JSON.stringify(this.#data));
+            }
+        });
+    }
+
+    // ========================================================================
+    // VALIDATION & SECURITY
+    // ========================================================================
+
+    /**
+     * Validates all configuration before sending request.
+     * Also prepares URL for GET requests by appending query parameters.
+     *
+     * @private
+     * @throws {Error} If any configuration is invalid
      */
     #validateConfigs() {
+        // Validate URL
         if (typeof this.#url !== 'string' || this.#url.trim() === '') {
-            throw new Error('Invalid URL: must be a non-empty string.');
+            throw new Error('Configuration error: URL must be a non-empty string.');
         }
 
+        // Validate method
         const validMethods = ['GET', 'POST'];
         if (!validMethods.includes(this.#method)) {
-            throw new Error(`Invalid method: must be one of ${validMethods.join(', ')}.`);
+            throw new Error(`Configuration error: Method must be one of ${validMethods.join(', ')}.`);
         }
 
+        // Validate headers
         if (typeof this.#headers !== 'object' || Array.isArray(this.#headers)) {
-            throw new Error('Invalid headers: must be an object.');
+            throw new Error('Configuration error: Headers must be a plain object.');
         }
+
+        // Merge with default headers
         this.#headers = { ...this.defaultHeaders(), ...this.#headers };
-        
-        Object.keys(this.#headers).forEach(hk => {
-            if (hk.toLowerCase() === 'content-type' && this.isFormData()) {
-                delete this.#headers[hk]; // Browser sets Content-Type for FormData
+
+        // Remove Content-Type for FormData (browser sets it automatically)
+        Object.keys(this.#headers).forEach(key => {
+            if (key.toLowerCase() === 'content-type' && this.isFormData()) {
+                delete this.#headers[key];
             }
         });
 
-        // If data is not object or FormData, throw error
+        // Validate data
         if (typeof this.#data !== 'object') {
-            throw new Error('Invalid data: must be an object or FormData.');
+            throw new Error('Configuration error: Data must be an object or FormData.');
         }
 
+        // Validate model
         const validModels = ['fetch', 'xhr'];
         if (!validModels.includes(this.#model)) {
-            throw new Error(`Invalid model: must be one of ${validModels.join(', ')}.`);
+            throw new Error(`Configuration error: Model must be one of ${validModels.join(', ')}.`);
         }
 
-        // If method is GET, append data as query parameters
+        // For GET requests, append data as query parameters
         if (this.#method === 'GET' && !isDataEmpty(this.#data)) {
-            const alreadySetQD = decodeURLQuery(this.#url);
-            let entireQD = {};
+            const existingParams = decodeURLQuery(this.#url);
+            let allParams = {};
+
+            // Extract params from FormData or object
             if (this.isFormData()) {
-                for ( const [k, v] of this.#data.entries() ) {
-                    entireQD[k] = v;
+                for (const [key, value] of this.#data.entries()) {
+                    allParams[key] = value;
                 }
             } else {
-                entireQD = { ...this.#data };
+                allParams = { ...this.#data };
             }
-            entireQD = { ...alreadySetQD, ...entireQD };
-            this.#url = this.#url.split('?')[0] + '?' + encodeURLQuery(entireQD);
+
+            // Merge with existing URL params
+            allParams = { ...existingParams, ...allParams };
+
+            // Rebuild URL with query string
+            this.#url = this.#url.split('?')[0] + '?' + encodeURLQuery(allParams);
         }
     }
 
     /**
-     * Determines if the data payload is an instance of FormData.
+     * Validates nonce with server and updates global nonce.
      *
-     * @returns {boolean} True if data is FormData, false otherwise.
+     * Flow:
+     * 1. Send current nonce to server
+     * 2. Server verifies and returns new nonce
+     * 3. Update global nonce with new value
+     * 4. Return validation result
+     *
+     * @private
+     * @returns {Promise<boolean>} True if validation succeeded
+     */
+    async #validateNonce() {
+        try {
+            lcs_ajax_object = lcs_ajax_object || {};
+
+            const currentNonce = lcs_ajax_object.nonce;
+            if (!currentNonce) {
+                console.error('Nonce validation error: No nonce found in lcs_ajax_object');
+                this.#triggerHooks('ajaxRequestFailedOnNonceValidation');
+                return false;
+            }
+
+            // Prepare nonce validation request
+            const payload = JSON.stringify({
+                NONCE: currentNonce,
+                SECURE: this.isFormData() 
+                    ? (this.#data.get('SECURE') || 'true') 
+                    : (this.#data.SECURE || true)
+            });
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+
+            // Remove query parameters from nonce URL
+            const nonceUrl = this.#nonce_url.split('?')[0];
+
+            // Send validation request using fetch
+            const response = await fetch(nonceUrl, { 
+                method: 'POST', 
+                headers, 
+                body: payload 
+            });
+
+            if (!response.ok) {
+                console.error(`Nonce validation error: HTTP ${response.status}: ${response.statusText}`);
+                this.#triggerHooks('ajaxRequestFailedOnNonceValidation');
+                return false;
+            }
+
+            const responseData = await response.json();
+
+            // Validate response structure
+            if (!responseData || typeof responseData !== 'object') {
+                this.#triggerHooks('ajaxRequestFailedOnNonceValidation');
+                console.error('Nonce validation error: Invalid response format', responseData);
+                return false;
+            }
+
+            const newNonce = responseData.data;
+
+            // Ensure new nonce was provided
+            if (!newNonce || typeof newNonce !== 'string' || isDataEmpty(newNonce)) {
+                this.#triggerHooks('ajaxRequestFailedOnNonceValidation');
+                console.error('Nonce validation error: Server did not return a new nonce', responseData);
+                return false;
+            }
+
+            // Update global nonce
+            lcs_ajax_object.nonce = newNonce;
+
+            // Return validation result
+            return true;
+
+        } catch (error) {
+            this.#triggerHooks('ajaxRequestFailedOnNonceValidation');
+            console.error('Nonce validation error:', error);
+            return false;
+        }
+    }
+
+    // ========================================================================
+    // HELPER METHODS
+    // ========================================================================
+
+    /**
+     * Waits for internet connection to be restored.
+     *
+     * @private
+     * @returns {Promise<void>} Resolves when online or timeout reached
+     * @throws {Error} If maximum wait time exceeded
+     */
+    async #waitForOnline() {
+        let timeWaited = 0;
+
+        return new Promise((resolve, reject) => {
+            // Listen for online event
+            const onlineHandler = () => {
+                window.removeEventListener('online', onlineHandler);
+                resolve();
+            };
+            window.addEventListener('online', onlineHandler);
+
+            // Poll for connection
+            const checkOnline = () => {
+                if (navigator.onLine) {
+                    window.removeEventListener('online', onlineHandler);
+                    resolve();
+                } else if (timeWaited >= this.maxWaitTime) {
+                    window.removeEventListener('online', onlineHandler);
+                    reject(new Error('Maximum wait time for reconnection exceeded'));
+                } else {
+                    timeWaited += this.pollInterval;
+                    setTimeout(checkOnline, this.pollInterval);
+                }
+            };
+
+            checkOnline();
+        });
+    }
+
+    /**
+     * Triggers hook actions for request lifecycle events.
+     *
+     * @private
+     * @param {string} hookName - Name of the hook to trigger
+     * @param {*} [data] - Optional data to pass to hook
+     */
+    #triggerHooks(hookName, data) {
+        // Trigger instance-specific hook if ID is set
+        if (!isDataEmpty(this.#hooksID)) {
+            hooks.doAction(`${hookName}_${this.#hooksID}`, data);
+        }
+        // Always trigger global hook
+        hooks.doAction(hookName, data);
+    }
+
+    // ========================================================================
+    // PUBLIC UTILITY METHODS
+    // ========================================================================
+
+    /**
+     * Checks if the current data payload is FormData.
+     *
+     * @returns {boolean} True if data is FormData instance
      */
     isFormData() {
         return this.#data instanceof FormData;
     }
 
     /**
-     * Provides default headers based on the data type.
-     * - For FormData: Only 'X-Requested-With' is set, as 'Content-Type' is handled by the browser.
-     * - For JSON: Sets 'Content-Type' to 'application/json' and 'X-Requested-With'.
+     * Provides default headers based on data type.
      *
-     * @returns {object} The default headers object.
+     * @returns {Object} Default headers object
      */
     defaultHeaders() {
         return this.isFormData()
@@ -174,654 +827,323 @@ export class ajaxRequest {
     }
 
     /**
-     * Sends an AJAX request with the specified or stored configurations.
-     * Handles nonce retrieval for secure requests and returns the response.
+     * Converts an object to FormData, intelligently handling arrays, files, and primitives.
      *
-     * @param {object|FormData} [data=this.#data] - Data to send with the request.
-     * @param {string} [url=this.#url] - Target URL for the request.
-     * @param {string} [method=this.#method] - HTTP method to use.
-     * @param {object} [headers=this.#headers] - Headers to include.
-     * @returns {Promise<any>} Resolves with the response data or rejects with an error.
+     * Rules:
+     * - Arrays → appended with [] suffix (e.g., 'tags[]')
+     * - FileList → each file appended with [] suffix
+     * - Single File → appended without [] suffix
+     * - Primitives → appended as-is
+     *
+     * @param {Object|FormData|null} [data=null] - Data to convert (uses instance data if null)
+     * @returns {FormData} Constructed FormData instance
+     * @throws {Error} If data is not an object or FormData
      */
-    async send(data = this.#data, url = this.#url, method = this.#method, headers = this.#headers) {
-        try {
+    buildFormData(data = null) {
+        data = data === null ? this.#data : data;
+
+        // Validate data type
+        if (data !== Object(data)) {
+            throw new Error('buildFormData error: Data must be an object or FormData.');
+        }
+
+        // Return existing FormData as-is
+        if (data instanceof FormData) {
             this.#data = data;
-            this.#url = url;
-            this.#method = method;
-            this.#headers = headers;
-
-            const isFormData = this.isFormData();
-            let isSecureRequest = true;
-
-            if (isFormData) {
-                if (!this.#data.has('SECURE')) {
-                    this.#data.append('SECURE', true);
-                }
-                if (this.#data.get('SECURE') === false || this.#data.get('SECURE') === false.toString()) {
-                    isSecureRequest = false;
-                }
-            } else {
-                this.#data = this.#data || {}; // Ensure data is an object if unset
-                if (!('SECURE' in this.#data)) {
-                    this.#data.SECURE = true;
-                }
-                if (this.#data.SECURE === false) {
-                    isSecureRequest = false;
-                }
-            }
-
-            if (isSecureRequest) {
-                const isNonceValid = await this.#validateNonce();
-                if (!isNonceValid) throw new Error('Nonce verification failed.');
-
-                // insert flag NONCE_VERIFIED=true into this.#data
-                if (isFormData) {
-                    this.#data.set
-                        ? this.#data.set('NONCE_VERIFIED', true)
-                        : this.#data.append('NONCE_VERIFIED', true);
-                } else {
-                    this.#data.NONCE_VERIFIED = true;
-                }
-            }
-
-            return await this.fetch();
-        } catch (error) {
-            console.error('Request failed:', error);
-            throw new Error(error.message || 'Request failed due to server error!');
+            return data;
         }
+
+        const formData = new FormData();
+
+        // Convert object to FormData
+        Object.keys(data).forEach(key => {
+            const value = data[key];
+
+            if (Array.isArray(value)) {
+                // Array → append each item with [] suffix
+                const arrayKey = key.replace(/\[\]$/g, '') + '[]';
+                value.forEach(item => formData.append(arrayKey, item));
+
+            } else if (value instanceof FileList) {
+                // FileList → append each file with [] suffix
+                const fileKey = key.replace(/\[\]$/g, '') + '[]';
+                for (let i = 0; i < value.length; i++) {
+                    formData.append(fileKey, value[i]);
+                }
+
+            } else if (value instanceof File) {
+                // Single file → append without [] suffix
+                formData.append(key.replace(/\[\]$/g, ''), value);
+
+            } else {
+                // Primitive value → append as-is
+                formData.append(key, value);
+            }
+        });
+
+        this.#data = formData;
+        return formData;
     }
 
-    /**
-     * Executes an AJAX request using the configured transport model (`fetch` or `xhr`).
-     * 
-     * - Ensures only one request is processed at a time by using an internal locking mechanism.
-     * - Handles automatic retry or waiting if the client is offline, with configurable timeout and hooks for interruption/resume.
-     * - Triggers custom hooks for various request states: busy, succeeded, failed, completed, interrupted, and resumed.
-     * - Supports both asynchronous and synchronous requests (for XHR; note: synchronous requests block the main thread).
-     * - Handles JSON and non-JSON responses, and automatically parses JSON if the response content-type indicates it.
-     * - Throws detailed errors for network issues, HTTP errors, timeouts, and invalid configurations.
-     * 
-     * @async
-     * @private
-     * @throws {Error} If the request fails due to network issues, HTTP errors, or invalid configuration.
-     * @returns {Promise<any>} Resolves with the parsed response data (object or string), or rejects with an error.
-     * 
-     * @example
-     * // Usage within the class
-     * try {
-     *   const response = await this.fetch();
-     *   // Handle response
-     * } catch (error) {
-     *   // Handle error
-     * }
-     */
-    async fetch() {
-        this.#validateConfigs();
-
-        // Check for internet connectivity
-        if (!navigator.onLine) {
-            if (!this.#waitOffline) {
-                hooks.doAction(`ajaxRequestFailedOnOffline_${this.#hooksID}`);
-                hooks.doAction(`ajaxRequestFailedOnOffline`);
-                throw new Error('No internet connection detected.');
-            }
-
-            this.#isAjaxInterrupted = true;
-            hooks.doAction(`ajaxRequestIsInterrupted_${this.#hooksID}`);
-            hooks.doAction(`ajaxRequestIsInterrupted`);
-
-            // Wait for connection with a timeout and online event listener
-            let timeWaited = 0;
-            await new Promise((resolve, reject) => {
-                const onlineHandler = () => {
-                    window.removeEventListener('online', onlineHandler);
-                    resolve();
-                };
-                window.addEventListener('online', onlineHandler);
-
-                const checkOnline = () => {
-                    if (navigator.onLine) {
-                        window.removeEventListener('online', onlineHandler);
-                        resolve();
-                    } else if (timeWaited >= this.maxWaitTime) {
-                        window.removeEventListener('online', onlineHandler);
-                        hooks.doAction(`ajaxRequestFailedOnOffline_${this.#hooksID}`);
-                        hooks.doAction(`ajaxRequestFailedOnOffline`);
-                        reject(new Error('No internet connection after waiting.'));
-                    } else {
-                        timeWaited += this.pollInterval;
-                        setTimeout(checkOnline, this.pollInterval);
-                    }
-                };
-                checkOnline();
-            });
-        }
-
-        // Trigger resume hook if connection was interrupted
-        if (navigator.onLine && this.#isAjaxInterrupted) {
-            hooks.doAction(`ajaxRequestResumed_${this.#hooksID}`);
-            hooks.doAction(`ajaxRequestResumed`);
-            this.#isAjaxInterrupted = false;
-        }
-
-        while (isRunningAjax) {
-            hooks.doAction(`ajaxRequestIsBusy_${this.#hooksID}`);
-            hooks.doAction(`ajaxRequestIsBusy`);
-            await new Promise(resolve => setTimeout(resolve, 100)); // Simple throttling
-        }
-
-        isRunningAjax = true;
-
-        try {
-            if (this.#model === 'fetch') {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-                try {
-                    const options = {
-                        method: this.#method,
-                        headers: this.#headers,
-                        body: this.#method === 'GET' ? undefined : (this.isFormData() ? this.#data : JSON.stringify(this.#data)),
-                        signal: controller.signal,
-                    };
-
-                    const response = await fetch(this.#url, options);
-                    clearTimeout(timeoutId);
-
-                    const contentType = response.headers.get('content-type');
-                    let responseData = contentType?.includes('application/json') ? await response.json() : await response.text();
-
-                    if (!response.ok) {
-                        if (response.status === 400) {
-                            hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, responseData);
-                            hooks.doAction(`ajaxRequestFailedOnError`);
-                            return responseData;
-                        }
-                        
-                        const error = new Error(responseData?.message || responseData?.data || `HTTP error: ${response.status}`);
-                        hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
-                        hooks.doAction(`ajaxRequestFailedOnError`);
-                        throw error;
-                    }
-
-                    hooks.doAction(`ajaxRequestSucceeded_${this.#hooksID}`, responseData);
-                    hooks.doAction(`ajaxRequestSucceeded`);
-                    return responseData;
-                } catch (error) {
-                    clearTimeout(timeoutId);
-                    if (error.name === 'AbortError') {
-                        const timeoutError = new Error('Request timed out.');
-                        hooks.doAction(`ajaxRequestFailedOnTimeout_${this.#hooksID}`, timeoutError);
-                        hooks.doAction(`ajaxRequestFailedOnTimeout`);
-                        throw timeoutError;
-                    }
-                    hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
-                    hooks.doAction(`ajaxRequestFailedOnError`);
-                    throw error;
-                }
-            } else if (this.#model === 'xhr') {
-                return new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    this.#requestInstance = xhr;
-
-                    xhr.open(this.#method, this.#url, this.#isRequestAsync);
-
-                    for (const key in this.#headers) {
-                        xhr.setRequestHeader(key, this.#headers[key]);
-                    }
-
-                    xhr.timeout = this.timeout;
-
-                    xhr.onreadystatechange = () => {
-                        if (xhr.readyState === XMLHttpRequest.DONE) {
-                            const contentType = xhr.getResponseHeader('content-type');
-                            let responseData = xhr.responseText;
-                            if (contentType?.includes('application/json')) {
-                                try {
-                                    responseData = JSON.parse(xhr.responseText);
-                                } catch (e) {
-                                    // Fallback to text if JSON parsing fails
-                                }
-                            }
-                            if (xhr.status >= 200 && xhr.status < 300) {
-                                hooks.doAction(`ajaxRequestSucceeded_${this.#hooksID}`, responseData);
-                                hooks.doAction(`ajaxRequestSucceeded`);
-                                resolve(responseData);
-                            } else if (xhr.status === 400) {
-                                const error = new Error(responseData?.message || responseData?.data || `XHR error: ${xhr.status}`);
-                                hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
-                                hooks.doAction(`ajaxRequestFailedOnError`);
-                                resolve(responseData);
-                            } else {
-                                const error = new Error(responseData?.message || responseData?.data || `XHR error: ${xhr.status}`);
-                                hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
-                                hooks.doAction(`ajaxRequestFailedOnError`);
-                                reject(error);
-                            }
-                        }
-                    };
-
-                    xhr.onerror = () => {
-                        const error = new Error('Network error during XHR request.');
-                        hooks.doAction(`ajaxRequestFailedOnError_${this.#hooksID}`, error);
-                        hooks.doAction(`ajaxRequestFailedOnError`);
-                        reject(error);
-                    };
-
-                    xhr.ontimeout = () => {
-                        const error = new Error('Request timed out.');
-                        hooks.doAction(`ajaxRequestFailedOnTimeout_${this.#hooksID}`, error);
-                        hooks.doAction(`ajaxRequestFailedOnTimeout`);
-                        reject(error);
-                    };
-
-                    if (this.#method === 'GET') {
-                        xhr.send();
-                    } else if (this.isFormData()) {
-                        xhr.send(this.#data);
-                    } else {
-                        xhr.send(JSON.stringify(this.#data));
-                    }
-                });
-            } else {
-                const error = new Error(`Unknown request model: ${this.#model}`);
-                hooks.doAction(`ajaxRequestFailedOnInvalidModel_${this.#hooksID}`, error);
-                hooks.doAction(`ajaxRequestFailedOnInvalidModel`);
-                throw error;
-            }
-        } finally {
-            isRunningAjax = false;
-            hooks.doAction(`ajaxRequestCompleted_${this.#hooksID}`);
-            hooks.doAction(`ajaxRequestCompleted`);
-        }
-    }
+    // ========================================================================
+    // SETTERS
+    // ========================================================================
 
     /**
-     * Sets the data payload for the request.
+     * Sets the request payload.
      *
-     * @param {object|FormData} data - The data to send.
+     * @param {Object|FormData} data - Data to send with request
+     * @throws {Error} If data is not an object or FormData
      */
     setData(data) {
         if (typeof data !== 'object') {
-            throw new Error('Invalid data type: must be an object or FormData.');
+            throw new Error('setData error: Data must be an object or FormData.');
         }
         this.#data = data;
     }
 
     /**
-     * Sets the target URL for the request.
+     * Sets the target URL.
      *
-     * @param {string} url - The URL to set.
+     * @param {string} url - Target URL
+     * @throws {Error} If URL is empty
      */
     setUrl(url) {
+        if (typeof url !== 'string' || url.trim() === '') {
+            throw new Error('setUrl error: URL must be a non-empty string.');
+        }
         this.#url = url;
     }
 
     /**
-     * Sets the nonce URL for nonce validation requests.
+     * Sets the nonce validation endpoint URL.
      *
-     * @param {string} url - The URL to use for nonce validation.
+     * @param {string} url - Nonce validation URL
+     * @throws {Error} If URL is empty
      */
     setNonceUrl(url) {
         if (typeof url !== 'string' || url.trim() === '') {
-            throw new Error('Invalid nonce URL: must be a non-empty string.');
+            throw new Error('setNonceUrl error: URL must be a non-empty string.');
         }
         this.#nonce_url = url;
     }
 
     /**
-     * Sets the HTTP method for the request.
+     * Sets the HTTP method.
      *
-     * @param {string} method - The method ('GET' or 'POST').
+     * @param {string} method - HTTP method ('GET' or 'POST')
+     * @throws {Error} If method is invalid
      */
     setMethod(method) {
         const validMethods = ['GET', 'POST'];
         if (!validMethods.includes(method)) {
-            throw new Error(`Invalid method: must be one of ${validMethods.join(', ')}.`);
+            throw new Error(`setMethod error: Method must be one of ${validMethods.join(', ')}.`);
         }
         this.#method = method;
     }
 
     /**
-     * Sets custom headers for the request.
+     * Sets custom request headers.
      *
-     * @param {object} headers - The headers object.
+     * @param {Object} headers - Headers object
+     * @throws {Error} If headers is not a plain object
      */
     setHeaders(headers) {
         if (typeof headers !== 'object' || Array.isArray(headers)) {
-            throw new Error('Invalid headers: must be an object.');
+            throw new Error('setHeaders error: Headers must be a plain object.');
         }
         this.#headers = headers;
     }
 
     /**
-     * Sets the request model (Fetch API or XHR).
+     * Sets the transport model.
      *
-     * @param {string} model - The model ('fetch' or 'xhr').
+     * @param {string} model - Transport model ('fetch' or 'xhr')
+     * @throws {Error} If model is invalid
      */
     setModel(model) {
         const validModels = ['fetch', 'xhr'];
         if (!validModels.includes(model)) {
-            throw new Error(`Invalid model: must be one of ${validModels.join(', ')}.`);
+            throw new Error(`setModel error: Model must be one of ${validModels.join(', ')}.`);
         }
         this.#model = model;
     }
 
     /**
-     * Sets the timeout duration for the request.
+     * Sets the request timeout.
      *
-     * @param {number} timeout - Timeout in milliseconds.
+     * @param {number} timeout - Timeout in milliseconds
+     * @throws {Error} If timeout is not a positive number
      */
     setTimeout(timeout) {
         if (typeof timeout !== 'number' || timeout <= 0) {
-            throw new Error('Invalid timeout: must be a positive number.');
+            throw new Error('setTimeout error: Timeout must be a positive number.');
         }
         this.timeout = timeout;
     }
 
     /**
-     * Sets whether the request should be asynchronous (applies to XHR only).
+     * Sets whether request should be asynchronous (XHR only).
      *
-     * @param {boolean} [active=true] - True for async, false for sync.
+     * @param {boolean} [active=true] - True for async, false for sync
      */
     setAsync(active = true) {
         this.#isRequestAsync = !!active;
     }
 
     /**
-     * Sets a unique hooks ID for this AJAX request instance.
-     * Ensures the ID is not empty and not already registered globally.
+     * Sets a unique hooks ID for lifecycle events.
+     * Prevents duplicate IDs from being registered.
      *
-     * @param {string} hid - The hooks ID to set.
-     * @throws {Error} If the hooks ID is empty or already exists.
+     * @param {string} hid - Hooks identifier
+     * @throws {Error} If hooks ID is empty
      */
     setHooksId(hid) {
         if (isDataEmpty(hid)) {
-            throw new Error('Hooks ID cannot be empty.');
+            throw new Error('setHooksId error: Hooks ID cannot be empty.');
         }
 
-        // Ensure global bucket exists
+        // Initialize global registry if needed
         window.lcsAjaxRequest = window.lcsAjaxRequest || {};
         window.lcsAjaxRequest.HIDs = window.lcsAjaxRequest.HIDs || [];
 
-        if (window.lcsAjaxRequest.HIDs.includes(hid)) {
-            throw new Error('Hooks ID already exists.');
+        // Register ID if not already registered
+        if (!window.lcsAjaxRequest.HIDs.includes(hid)) {
+            window.lcsAjaxRequest.HIDs.push(hid);
         }
 
-        window.lcsAjaxRequest.HIDs.push(hid);
         this.#hooksID = hid;
     }
 
     /**
-     * Sets whether the request should wait for internet reconnection if offline.
+     * Sets whether to wait for reconnection when offline.
      *
-     * @param {boolean} [active=true] - True to wait for reconnection, false to fail immediately.
+     * @param {boolean} [active=true] - True to wait for reconnection
      */
     waitOffline(active = true) {
         this.#waitOffline = !!active;
     }
 
-    /**
-     * Validates and refreshes a security nonce before performing
-     * any sensitive AJAX operation, helping to prevent CSRF and replay attacks.
-     *
-     * How it works:
-     * 1. Sends the current nonce (from `lcs_ajax_object.nonce`) to the server.
-     * 2. The server verifies the nonce and issues a new one.
-     * 3. The new nonce replaces the old one both in the global object
-     *    and in the current request payload (`this.#data`).
-     *
-     * Supports both Fetch API and XMLHttpRequest.
-     *
-     * @returns {Promise<boolean>}
-     *   Resolves with `true` if verification succeeded, otherwise rejects with `false` or an Error.
-     *
-     * @example
-     * // Typical usage before secure requests:
-     * await this.validateNonce('/api/verify-nonce.php')
-     *   .then(() => this.sendSecureData())
-     *   .catch(() => alert('Session expired or invalid nonce.'));
-     *
-     * @example
-     * // Inside a class with FormData payloads:
-     * if (this.isFormData()) {
-     *   this.#data.append('NONCE', lcs_ajax_object.nonce);
-     * } else {
-     *   this.#data.NONCE = lcs_ajax_object.nonce;
-     * }
-     */
-    async #validateNonce() {
-        return new Promise((resolve, reject) => {
-            lcs_ajax_object = lcs_ajax_object || {};
-
-            const NONCE = lcs_ajax_object.nonce;
-            if (!NONCE) return reject(new Error('Missing nonce.'));
-
-            const handleResponse = (responseData) => {
-                if (!responseData || typeof responseData !== 'object') {
-                    return reject(new Error('Invalid nonce response format.'));
-                }
-
-                const { success, data: newNonce } = responseData;
-
-                if (!newNonce) {
-                    return reject(new Error('Server did not return a new nonce.'));
-                }
-
-                // Update nonce globally
-                lcs_ajax_object.nonce = newNonce;
-                success ? resolve(true) : reject(false);
-            };
-
-            const payload = JSON.stringify({ 
-                NONCE: NONCE, 
-                SECURE: this.isFormData() ? (this.#data.get('SECURE') || true) : (this.#data.SECURE || true) 
-            });
-            
-            const headers = {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            };
-
-            // Remove potential query arg in the url
-            this.#nonce_url = this.#nonce_url.split('?')[0];
-
-            if (this.#model === 'fetch') {
-                fetch(this.#nonce_url, { method: 'POST', headers, body: payload })
-                    .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
-                    .then(handleResponse)
-                    .catch(err => reject(new Error(`Nonce request failed: ${err.message}`)));
-            } else {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', this.#nonce_url, true);
-                for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            handleResponse(JSON.parse(xhr.responseText));
-                        } catch {
-                            reject(new Error('Failed to parse nonce response.'));
-                        }
-                    } else {
-                        reject(new Error(`Nonce XHR failed: ${xhr.status} ${xhr.statusText}`));
-                    }
-                };
-                xhr.onerror = () => reject(new Error('Network error during nonce request.'));
-                xhr.send(payload);
-            }
-        });
-    }
+    // ========================================================================
+    // GETTERS
+    // ========================================================================
 
     /**
-     * Returns the XHR instance for the request, if using 'xhr' model.
-     *
-     * @returns {XMLHttpRequest} The XHR instance.
-     * @throws {Error} If model is not 'xhr' or no instance exists.
-     */
-    getRequestInstance() {
-        if (this.#model !== 'xhr') {
-            throw new Error("Request instance is only available for 'xhr' model.");
-        }
-        if (!this.#requestInstance || !(this.#requestInstance instanceof XMLHttpRequest)) {
-            throw new Error('No valid request instance available. Ensure the request has been sent.');
-        }
-        return this.#requestInstance;
-    }
-
-    /**
-     * Builds a FormData object from various input data types.
-     *
-     * - If `data` is null, uses the instance's existing `#data`.
-     * - If `data` is already a FormData instance, returns it immediately.
-     * - Supports values of type Array, FileList, File, or primitive/string.
-     * - Arrays and FileLists are appended using the key with `[]` suffix.
-     * - Single Files are appended with the key without `[]` suffix.
-     *
-     * @param {Object|FormData|null} [data=null] - The source data to convert into FormData.
-     * @throws {Error} If `data` is not an object or FormData.
-     * @returns {FormData} The constructed or existing FormData instance.
-     */
-    buildFormData(data = null) {
-        // Use provided data or fallback to existing instance data
-        data = data === null ? this.#data : data;
-
-        // Ensure data is an object or FormData
-        if (data !== Object(data)) {
-            throw new Error("Invalid data type: must be an object or FormData.");
-        }
-
-        // If already FormData, reuse it
-        if (data instanceof FormData) {
-            this.#data = data;
-            return data;
-        }
-
-        const newFormData = new FormData();
-
-        // Iterate over keys in the data object
-        Object.keys(data).forEach(key => {
-            const value = data[key];
-
-            if (Array.isArray(value)) {
-                // Array → append with []
-                const bracketKey = key.replace(/\[\]/g, '') + '[]';
-                value.forEach(item => newFormData.append(bracketKey, item));
-
-            } else if (value instanceof FileList) {
-                // FileList → append with []
-                const bracketKey = key.replace(/\[\]/g, '') + '[]';
-                for (let i = 0; i < value.length; i++) {
-                    newFormData.append(bracketKey, value[i]);
-                }
-
-            } else if (value instanceof File) {
-                // Single File → append without []
-                newFormData.append(key.replace(/\[\]/g, ''), value);
-
-            } else {
-                // Primitives/strings → append as-is
-                newFormData.append(key, value);
-            }
-        });
-
-        // Store and return the new FormData
-        this.#data = newFormData;
-        return newFormData;
-    }
-
-    /**
-     * Gets the current data payload.
-     * @returns {object|FormData} The current request data.
+     * Gets the current request payload.
+     * @returns {Object|FormData} Current data
      */
     getData() {
         return this.#data;
     }
 
     /**
-     * Gets the current target URL.
-     * @returns {string} The current URL.
+     * Gets the target URL.
+     * @returns {string} Current URL
      */
     getUrl() {
         return this.#url;
     }
 
     /**
-     * Gets the current HTTP method.
-     * @returns {string} The current method ('GET' or 'POST').
+     * Gets the HTTP method.
+     * @returns {string} Current method
      */
     getMethod() {
         return this.#method;
     }
 
     /**
-     * Gets the current headers.
-     * @returns {object} The current headers object.
+     * Gets the request headers (copy to prevent external mutation).
+     * @returns {Object} Current headers
      */
     getHeaders() {
         return { ...this.#headers };
     }
 
     /**
-     * Gets the current request model.
-     * @returns {string} The current model ('fetch' or 'xhr').
+     * Gets the transport model.
+     * @returns {string} Current model ('fetch' or 'xhr')
      */
     getModel() {
         return this.#model;
     }
 
     /**
-     * Gets the current nonce URL.
-     * @returns {string} The current nonce URL.
+     * Gets the nonce validation URL.
+     * @returns {string} Nonce URL
      */
     getNonceUrl() {
         return this.#nonce_url;
     }
 
     /**
-     * Gets whether the request is currently running.
-     * @returns {boolean} True if a request is in progress.
+     * Checks if a request is currently in progress (global lock).
+     * @returns {boolean} True if request is running
      */
     isRunning() {
         return isRunningAjax;
     }
 
     /**
-     * Gets whether the request is set to async mode.
-     * @returns {boolean} True if request is asynchronous.
+     * Checks if request is configured as asynchronous.
+     * @returns {boolean} True if async
      */
     isAsync() {
         return this.#isRequestAsync;
     }
 
     /**
-     * Gets whether the request is currently interrupted.
-     * @returns {boolean} True if request was interrupted.
+     * Checks if request was interrupted due to offline state.
+     * @returns {boolean} True if interrupted
      */
     isInterrupted() {
         return this.#isAjaxInterrupted;
     }
 
     /**
-     * Gets whether the request will wait when offline.
-     * @returns {boolean} True if request will wait for reconnection.
+     * Checks if request is configured to wait when offline.
+     * @returns {boolean} True if waiting for reconnection
      */
     isWaitingOffline() {
         return this.#waitOffline;
     }
 
     /**
-     * Gets the current hooks ID.
-     * @returns {string} The current hooks ID.
+     * Gets the hooks identifier for this instance.
+     * @returns {string} Hooks ID
      */
     getHooksId() {
         return this.#hooksID;
     }
 
+    /**
+     * Gets the XHR instance (only for 'xhr' model after request is sent).
+     *
+     * @returns {XMLHttpRequest} XHR instance
+     * @throws {Error} If model is not 'xhr' or request hasn't been sent
+     */
+    getRequestInstance() {
+        if (this.#model !== 'xhr') {
+            throw new Error("getRequestInstance error: Only available for 'xhr' transport model.");
+        }
+        if (!this.#requestInstance || !(this.#requestInstance instanceof XMLHttpRequest)) {
+            throw new Error('getRequestInstance error: No XHR instance available. Request may not have been sent yet.');
+        }
+        return this.#requestInstance;
+    }
 }
 
+// ============================================================================
+// SINGLETON EXPORT
+// ============================================================================
+
 /**
- * A singleton instance of ajaxRequest for easy use throughout the application.
+ * Pre-configured singleton instance for convenience.
+ * Uses server-provided AJAX URL and POST method by default.
  *
- * @module ajaxRequest
+ * @example
+ * import { ajax } from './ajaxRequest.js';
+ * ajax.setData({ action: 'save', value: 123 });
+ * const result = await ajax.send();
  */
-export const ajax = new ajaxRequest(lcs_ajax_object.ajaxurl, 'POST');
+export const ajax = new ajaxRequest(lcs_ajax_object.ajaxurl || '', 'POST');
