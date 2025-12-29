@@ -51,7 +51,7 @@ export async function confirm(message, notes = null, options = {}) {
       confirmContainer.style.display = 'flex';
       confirmContainer.style.alignItems = 'center';
       confirmContainer.style.justifyContent = 'center';
-      confirmContainer.style.zIndex = '1000';
+      confirmContainer.style.zIndex = '9999';
   
       // Create the dialog box
       const dialogBox = document.createElement('div');

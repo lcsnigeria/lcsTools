@@ -1,7 +1,7 @@
 /* Container for alerts */
 .lcsAlertContainer {
     position: fixed;
-    z-index: 1000; /* Ensures alerts appear above other content */
+    z-index: 10000; /* Ensures alerts appear above other content */
     display: flex;
     flex-direction: column;
     gap: 10px; /* Spacing between stacked alerts */
