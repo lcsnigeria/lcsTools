@@ -1,6 +1,6 @@
 {
   "name": "@lcsng/tools",
-  "version": "0.0.75",
+  "version": "0.0.76",
   "description": "A modular JavaScript utility library designed for scalable, efficient web development.",
   "main": "dist/lt.min.js",
   "files": [
