@@ -4,7 +4,7 @@ import { isHTMLSelector } from "../workingTools/elementOps/ops.js";
 import { changeElementTagName } from "../workingTools/elementOps/ops.js";
 
 /**
- * lcsLoader is a configurable loader/spinner utility for displaying loading animations in web applications.
+ * loaderAnimation is a configurable loader/spinner utility for displaying loading animations in web applications.
  *
  * This class supports multiple loader styles (spinner, progress bar, pulse, etc.), sizes, and colors.
  * It can render loaders into any container element or selector, and provides methods to update style, size, and color dynamically.
@@ -21,7 +21,7 @@ import { changeElementTagName } from "../workingTools/elementOps/ops.js";
  * ### Example Usage
  * ```js
  * // Create a loader instance with default options
- * const loader = new lcsLoader();
+ * const loader = new loaderAnimation();
  * 
  * // Start the loader in the body
  * loader.start();
@@ -38,7 +38,7 @@ import { changeElementTagName } from "../workingTools/elementOps/ops.js";
  * loader.start();
  * ```
  * 
- * @class lcsLoader
+ * @class loaderAnimation
  * @classdesc Configurable loader/spinner utility for web applications.
  *
  * @param {string} [style='spinner'] - Loader style ('spinner', 'spinner-fade', 'spinner-fade-smooth', 'spinner-gear', 'pulse', 'progress', 'progress-infinity', 'progress-percent').
@@ -102,7 +102,7 @@ import { changeElementTagName } from "../workingTools/elementOps/ops.js";
  * @description Removes all loader elements from the DOM or from a specific container.
  * @param {HTMLElement|string|null} [container] - Container element or selector.
  */
-class lcsLoader 
+export class loaderAnimation 
 {
     #loaderStyle;
     #loaderSize;
@@ -221,8 +221,14 @@ class lcsLoader
         loaderContainer.appendChild(loaderWrapper);
 
         // Append loader container into the target parent container
-        this.#loaderContainer.style.position = 'relative';
-        this.#loaderContainer.appendChild(loaderContainer);
+        if (this.#loaderContainerPosition === 'absolute') {
+            this.#loaderContainer.classList.add('lcsLoaderContainer');
+            this.#loaderContainer.appendChild(loaderContainer);
+        } else {
+            this.#loaderContainer = document.body;
+            document.body.classList.add('lcsLoaderContainer');
+            document.body.appendChild(loaderContainer);
+        }
 
         // Start loading progress according to XHR if style is progress-request
         if (this.#loaderStyle === 'progress-request') {
@@ -614,18 +620,24 @@ class lcsLoader
             targetContainer = isHTMLSelector(targetContainer) && document.querySelector(`${targetContainer}`) ?
                 document.querySelector(`${targetContainer}`) : document.body;
         }
+
         // Remove all loader containers within the target container
         const loaderContainers = targetContainer.classList.contains('lcsLoader')
             ? [targetContainer]
             : Array.from(targetContainer.querySelectorAll('.lcsLoader'));
-        loaderContainers.forEach(el => el.remove());
+        loaderContainers.forEach(el => {
+            const parent = el.closest('.lcsLoaderContainer');
+            if (parent && parent.classList.contains('lcsLoaderContainer')) {
+                parent.classList.remove('lcsLoaderContainer');
+            }
+            el.remove();
+        });
     }
 }
 
 /**
- * A singleton instance of lcsLoader for easy use throughout the application.
+ * A singleton instance of loaderAnimation for easy use throughout the application.
  *
  * @module loader
  */
-export const loader = new lcsLoader();
-export default lcsLoader;
+export const loader = new loaderAnimation();

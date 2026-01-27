@@ -75,4 +75,4 @@ export * from './js/formOperations/externalFormLibs.js';
 export * from './js/formOperations/formData.js';
 
 // Animations
-export * from './js/animations/loader.js';
+export * from './js/animations/loaderAnimation.js';

@@ -197,6 +197,13 @@ document.addEventListener("submit", async (event) => {
         value = field.checked ? 1 : 0;
       }
 
+      // RADIO
+      else if (type === 'radio') {
+        if (field.checked) {
+          value = field.value;
+        }
+      }
+
       // SELECT (multiple support)
       else if (lcTag === 'select' && field.selectedOptions.length) {
         value = Array.from(field.selectedOptions, opt => opt.value);

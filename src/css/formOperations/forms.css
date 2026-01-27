@@ -57,13 +57,13 @@
 .lcsFormStyles ._form_input_wrapper {
     position: relative;
 }
-.lcsFormStyles ._form_password_wrapper {
+.lcsFormStyles .formPasswordWrapper {
     position: relative;
 }
-.lcsFormStyles ._form_password_wrapper > input {
+.lcsFormStyles .formPasswordWrapper > input {
     width: 100%;
 }
-.lcsFormStyles ._form_password_wrapper ._show_hide_password {
+.lcsFormStyles .formPasswordWrapper .showHidePassword {
     position: absolute;
     right: 1rem;
     cursor: pointer;

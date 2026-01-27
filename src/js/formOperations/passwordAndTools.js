@@ -45,12 +45,12 @@ export function passwordStrength(password) {
  */
 export function generateConfirmPasswordField() {
     const wrapper = document.createElement('div');
-    wrapper.className = '_form_group _confirm_password';
+    wrapper.className = 'formGroup _confirmPassword';
     wrapper.innerHTML = `
-        <label for="confirm_password">Confirm Password</label>
-        <div class="_form_password_wrapper">
-            <input type="password" class="_validate_password _password_input" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
-            <button type="button" class="_show_hide_password">Show</button>
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="formPasswordWrapper">
+            <input type="password" class="validatePassword passwordInput" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required>
+            <button type="button" class="showHidePassword">Show</button>
         </div>
     `;
     return wrapper.outerHTML;
@@ -59,7 +59,7 @@ export function generateConfirmPasswordField() {
 /**
  * Handles live password validation for forms with class `.lcsForm`.
  * 
- * Validates the password field (with class `.lcsForm ._validate_password`) in real-time.
+ * Validates the password field (with class `.lcsForm .validatePassword`) in real-time.
  * - Ensures password strength.
  * - Dynamically adds a confirm password field if needed.
  * - Ensures confirm password matches the original password.
@@ -68,18 +68,18 @@ document.addEventListener('input', (event) => {
     const inputTarget = event.target;
 
     // Ensure we're inside the correct form and targeting a password validation input
-    if (inputTarget.closest('.lcsForm ._validate_password')) {
+    if (inputTarget.closest('.lcsForm .validatePassword')) {
         const thisForm = inputTarget.closest('.lcsForm');
-        const passwordInputElement = inputTarget.closest('.lcsForm ._validate_password');
-        const passwordFieldFormGroup = inputTarget.closest('._form_group._password');
+        const passwordInputElement = inputTarget.closest('.lcsForm .validatePassword');
+        const passwordFieldFormGroup = inputTarget.closest('.formGroup._password');
 
-        const confirmPasswordFieldFormGroup = thisForm.querySelector('._form_group._confirm_password');
+        const confirmPasswordFieldFormGroup = thisForm.querySelector('.formGroup._confirmPassword');
 
         // If input is the main password field
         if (passwordInputElement.id === 'password') {
             // If the password field wrapper is missing, throw a descriptive error
             if (!passwordFieldFormGroup) {
-                throw new Error("Password field group not found. Ensure the password input is wrapped in a '._form_group._password' container.");
+                throw new Error("Password field group not found. Ensure the password input is wrapped in a '.formGroup._password' container.");
             }
 
             const enteredPasswordStrength = passwordStrength(passwordInputElement.value);
@@ -121,12 +121,12 @@ document.addEventListener('input', (event) => {
                 }
             }
 
-        } else if (passwordInputElement.id === 'confirm_password') {
+        } else if (passwordInputElement.id === 'confirmPassword') {
             // Confirm password logic
 
             // If the confirm password field wrapper is missing, throw a descriptive error
             if (!confirmPasswordFieldFormGroup) {
-                throw new Error("Confirm password field group not found. Ensure the password input is wrapped in a '._form_group._confirm_password' container.");
+                throw new Error("Confirm password field group not found. Ensure the password input is wrapped in a '.formGroup._confirmPassword' container.");
             }
 
             // If window.passwordOwnValue is undefined, it means the original password isn't valid or hasn't been entered
@@ -166,11 +166,11 @@ document.addEventListener('input', (event) => {
  */
 document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("click", function (e) {
-        const showHidePasswordToggle = e.target.closest("._show_hide_password");
+        const showHidePasswordToggle = e.target.closest(".showHidePassword");
         if (!showHidePasswordToggle) return;
 
-        const passwordInputWrapper = showHidePasswordToggle.closest("._form_password_wrapper");
-        const passwordInput = passwordInputWrapper.querySelector("input._password_input");
+        const passwordInputWrapper = showHidePasswordToggle.closest(".formPasswordWrapper");
+        const passwordInput = passwordInputWrapper.querySelector("input.passwordInput");
 
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';

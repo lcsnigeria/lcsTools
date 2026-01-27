@@ -32,8 +32,8 @@
     </div>
 
     <script type="module">
-        // Import the lcsLoader class (assuming it's in a module)
-        import lcsLoader from './loader.js';
+        // Import the loaderAnimation class (assuming it's in a module)
+        import loaderAnimation from './loader.js';
 
         document.addEventListener('DOMContentLoaded', () => {
             // Create a container div in HTML for the loader
@@ -43,7 +43,7 @@
             document.body.appendChild(container);
 
             // Initialize a loader instance with custom options
-            const loader = new lcsLoader(
+            const loader = new loaderAnimation(
                 'spinner',        // Style: spinner
                 'normal',        // Size: normal
                 '#3498db',       // Color: blue
