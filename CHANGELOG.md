@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.84](https://github.com/lcsnigeria/lcsTools/compare/v0.0.83...v0.0.84) (2026-01-30)
+
+
+### Features
+
+* Enhance form submission handling and password validation ([d73c9a1](https://github.com/lcsnigeria/lcsTools/commit/d73c9a1dbb1e7d32312f77270a19ad610beaf6a3))
+
 ### [0.0.83](https://github.com/lcsnigeria/lcsTools/compare/v0.0.82...v0.0.83) (2026-01-24)
 
 ### [0.0.82](https://github.com/lcsnigeria/lcsTools/compare/v0.0.81...v0.0.82) (2026-01-24)
