@@ -1146,4 +1146,4 @@ export class ajaxRequest {
  * ajax.setData({ action: 'save', value: 123 });
  * const result = await ajax.send();
  */
-export const ajax = new ajaxRequest(lcs_ajax_object.ajaxurl || '', 'POST');
+export const ajax = new ajaxRequest(lcs_ajax_object.ajaxurl || '/', 'POST');

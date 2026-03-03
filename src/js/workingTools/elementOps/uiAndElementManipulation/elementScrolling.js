@@ -78,35 +78,100 @@ export function setSmoothScrolling(active = true) {
 
 
 /**
- * Smoothly scrolls the page to the specified target element or selector.
+ * Smoothly scrolls the page or nearest scrollable container
+ * to a target element using native browser behavior.
  *
- * This function uses `scrollIntoView` with smooth behavior to animate scrolling
- * to a particular DOM element, either by CSS selector or direct element reference.
- * If the target is not found or invalid, a warning is logged.
+ * This method is intent-based and lets the browser decide
+ * which container(s) should scroll.
  *
- * @param {string|Element} target - The selector (string) or DOM element to scroll to.
- * @returns {void}
+ * @param {string|Element} target
+ * @param {Object} [options]
+ * @param {'start'|'center'|'end'|'nearest'} [options.block='center']
+ * @param {'start'|'center'|'end'|'nearest'} [options.inline='center']
+ * @param {'smooth'|'auto'} [options.behavior='smooth']
  *
  * @example
- * // Scroll to an element by selector
- * scrollTo('#contactSection');
- *
- * // Scroll to a DOM element reference
- * const header = document.querySelector('header');
- * scrollTo(header);
+ * scrollTo('#section');
+ * scrollTo('.tab.active', { inline: 'start' });
  */
-export function scrollTo(target) {
-    let element;
+export function scrollTo(target, options = {}) {
+    const element =
+        typeof target === 'string' ? document.querySelector(target) : target;
 
-    if (typeof target === 'string') {
-        element = document.querySelector(target);
-    } else if (target instanceof Element) {
-        element = target;
+    if (!(element instanceof Element)) {
+        throw new Error('Target element not found or invalid.');
     }
 
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        console.warn('Target element not found or invalid.');
+    const {
+        block = 'center',
+        inline = 'center',
+        behavior = 'smooth'
+    } = options;
+
+    element.scrollIntoView({
+        block,
+        inline,
+        behavior
+    });
+}
+
+/**
+ * Scrolls a container to position a child element.
+ * Designed for precision-controlled scrolling.
+ *
+ * @param {HTMLElement|string} container
+ * @param {HTMLElement|string} target
+ * @param {'x'|'y'|'both'} [axis='x']
+ * @param {'smooth'|'auto'} [behavior='smooth']
+ *
+ * @example
+ * scrollToChild('.tabs', '.tab.active');
+ * scrollToChild('.list', '.item.active', 'y');
+ * scrollToChild('.grid', '.cell.active', 'both', 'auto');
+ */
+export function scrollToChild(container, target, axis = 'x', behavior = 'smooth') {
+    const containerEl =
+        typeof container === 'string' ? document.querySelector(container) : container;
+
+    const targetEl =
+        typeof target === 'string' ? document.querySelector(target) : target;
+
+    if (!(containerEl instanceof Element) || !(targetEl instanceof Element)) {
+        throw new Error('Invalid container or target element for scrolling.');
     }
+
+    const containerRect = containerEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+
+    const options = { behavior };
+
+    if (axis === 'x' || axis === 'both') {
+        const rawLeft =
+            targetRect.left
+            - containerRect.left
+            + containerEl.scrollLeft
+            - (containerEl.clientWidth / 2)
+            + (targetEl.clientWidth / 2);
+
+        options.left = Math.max(
+            0,
+            Math.min(rawLeft, containerEl.scrollWidth - containerEl.clientWidth)
+        );
+    }
+
+    if (axis === 'y' || axis === 'both') {
+        const rawTop =
+            targetRect.top
+            - containerRect.top
+            + containerEl.scrollTop
+            - (containerEl.clientHeight / 2)
+            + (targetEl.clientHeight / 2);
+
+        options.top = Math.max(
+            0,
+            Math.min(rawTop, containerEl.scrollHeight - containerEl.clientHeight)
+        );
+    }
+
+    containerEl.scrollTo(options);
 }

@@ -2,13 +2,13 @@ import { hooks } from "../hooks.js";
 import { executeFunction } from "../workingTools/functionOps.js";
 
 /**
- * Reads the <meta> tag named "lcs_external_libs_cdn" to determine which CDN provider
+ * Reads the <meta> tag named "lcsExternalLibsCDN" to determine which CDN provider
  * to use for loading external libraries. If not present, all configured providers
  * will be loaded.
  *
  * @constant {HTMLMetaElement|null}
  */
-const metaConfig = document.querySelector('meta[name="lcs_external_libs_cdn"]');
+const metaConfig = document.querySelector('meta[name="lcsExternalLibsCDN"]');
 
 /**
  * The provider key (e.g. "choices") extracted from the meta tag content.
@@ -141,7 +141,7 @@ export async function loadChoicesLibs() {
   await loadExternalFormLibsCDN();
 
   if (externalLibsCDNLoaded && externalLibsCDNProviders.includes('choices')) {
-    const allSelectFormElements = document.querySelectorAll('.lcsForm ._select_by_choices, .lcsForm ._input_by_choices');
+    const allSelectFormElements = document.querySelectorAll('.lcsForm .selectByChoices, .lcsForm .inputByChoices');
     
     allSelectFormElements.forEach(selectElement => {
       const selectElementTagName = selectElement.tagName.toLowerCase();
@@ -283,5 +283,5 @@ function refreshChoicesLibs() {
 (async() => {
   await loadExternalFormLibsCDN();
   document.addEventListener('DOMContentLoaded', initializeChoices);
-  hooks.addAction('lcsAjaxRequestCompleted', refreshChoicesLibs);
+  hooks.addAction('ajaxRequestCompleted', refreshChoicesLibs);
 })();

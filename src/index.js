@@ -48,6 +48,7 @@ export * from './js/workingTools/elementOps/uiAndElementManipulation/overlayUtil
 
 // Request
 export * from './js/requests/ajaxRequest.js';
+export * from './js/requests/oAuth.js';
 
 // File Oprations
 export * from './js/fileOperations/codes.js';
@@ -64,13 +65,8 @@ export * from './js/fileOperations/fileOperationsComponents.js';
 
 // Forms
 export * from './js/formOperations/formSubmission.js';
-export * from './js/formOperations/OTPField.js';
-export * from './js/formOperations/radioOptionSelection.js';
 export * from './js/formOperations/passwordAndTools.js';
 export * from './js/formOperations/inputValidation.js';
-export * from './js/formOperations/countrySelection.js';
-export * from './js/formOperations/dropdownOptionSelection.js';
-export * from './js/formOperations/pillOptionSelection.js';
 export * from './js/formOperations/externalFormLibs.js';
 export * from './js/formOperations/formData.js';
 
