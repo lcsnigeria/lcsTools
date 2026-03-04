@@ -1,5 +1,6 @@
-import { alert } from "../alertsAndLogs/alerts";
-import { buildUrlQuery } from "../workingTools/urlOps";
+import { alert } from "../alertsAndLogs/alerts.js";
+import { executeFunction, isFunctionExists } from "../workingTools/functionOps.js";
+import { buildUrlQuery } from "../workingTools/urlOps.js";
 
 /**
  * Delegated OAuth click handler.
@@ -9,6 +10,21 @@ document.addEventListener('click', (event) => {
   if (!trigger) return;
 
   const uxMode = trigger.dataset.ux_mode || 'popup';
+
+  if (uxMode === 'redirect') {
+    alert.send("[LCS_OAUTH] oAuth 'redirect' mode is currently unstable.", 'error');
+    return;
+  }
+
+  if (!['popup', 'redirect'].includes(uxMode)) {
+    alert.send(`[LCS_OAUTH] Invalid ux_mode "${uxMode}". Must be "popup" or "redirect".`, 'error');
+    return;
+  }
+
+  if (uxMode === 'popup' && (!trigger.dataset.callback || !isFunctionExists(trigger.dataset.callback))) {
+    alert.send(`[LCS_OAUTH] A valid global callback function name is required for popup mode: ${trigger.dataset.callback}.`, 'error');
+    return;
+  }
 
   let popup = null;
 
@@ -47,9 +63,46 @@ document.addEventListener('click', (event) => {
     );
 
     if (!popup) {
-      alert.send('Popup blocked! Please allow popups for this site.', 'error');
+      alert.send('[LCS_OAUTH] Popup blocked! Please allow popups for this site.', 'error');
       return;
     }
+
+    const allowedOrigin = 'https://lcs.ng';
+
+    const messageHandler = (event) => {
+      // 1️⃣ Security: Check origin
+      if (event.origin !== allowedOrigin) return;
+
+      // 2️⃣ Security: Ensure message is from OUR popup
+      if (event.source !== popup) return;
+
+      const data = event.data;
+
+      if (!data || data.type !== 'LCS_OAUTH_RESULT') return;
+
+      window.removeEventListener('message', messageHandler);
+      clearInterval(closedChecker); // stop polling, popup flow is done
+
+      if (data.status === 'success') {
+        const cbName = trigger.dataset.callback;
+        if (cbName && isFunctionExists(cbName)) {
+          executeFunction(cbName, 0, 1, 0, data.payload.auth_token);
+        }
+      } else {
+        alert.send('[LCS_OAUTH] ' + (data?.payload?.message || 'OAuth failed.'), 'error');
+      }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    // Cleanup if user manually closes the popup without completing auth
+    const closedChecker = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(closedChecker);
+        window.removeEventListener('message', messageHandler);
+      }
+    }, 500);
+
   }
 
   launchOAuth({
@@ -76,7 +129,7 @@ function launchOAuth(configs = {}) {
   const ORIGIN = 'https://lcs.ng/oauth';
 
   if (!configs.clientId) {
-    alert.send('OAuth clientId is required.', 'error');
+    alert.send('[LCS_OAUTH] OAuth clientId is required.', 'error');
     if (configs.popup) configs.popup.close();
     return;
   }

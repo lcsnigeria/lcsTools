@@ -10,10 +10,18 @@
     <h1>OAuth Testing Ground</h1>
     <button 
     type="button" 
-    id="lcs_oauth_hardpoint" 
-    data-ux_mode="popup" 
-    data-client_id="lcs_client_d292920c08ee1843efb005f7805104bd">
+id="lcs_oauth_hardpoint" 
+            data-client_id="lcs_client_89e6b3f30bce3edfd04394db529904bb" 
+            data-ux_mode="popup" 
+            data-context="signin" 
+            data-callback="handleLcsOAuthResponse">
         Sign In with LCSNG
     </button>
+
+    <script>
+        function handleLcsOAuthResponse(response) {
+            console.log('LCS OAuth Response:', response);
+        }
+    </script>
 </body>
 </html>
