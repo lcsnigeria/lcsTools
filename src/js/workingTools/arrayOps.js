@@ -600,3 +600,77 @@ export function decodeURLQuery(queryStringOrUrl) {
 
     return result;
 }
+
+/**
+ * Get the largest item from an array.
+ *
+ * Comparison rules:
+ * - Numbers are compared by numeric value.
+ * - Strings are compared by their length.
+ *
+ * Return behavior:
+ * - When returnRealItem = true → returns the actual item.
+ * - When returnRealItem = false → returns the evaluated size (number or string length).
+ *
+ * Invalid values (null, undefined, objects, NaN, etc.) are ignored.
+ *
+ * If no valid item exists:
+ *  - returns 0 when resolveIssues = true
+ *  - throws an error when resolveIssues = false
+ *
+ * @param {Array<number|string>} items
+ * @param {boolean} [returnRealItem=true]
+ * @param {boolean} [resolveIssues=true]
+ * @returns {number|string}
+ *
+ * @example
+ * getArrayLargestItem([1,2,'car'], true)
+ * // 'car'
+ *
+ * @example
+ * getArrayLargestItem([1,2,'car'], false)
+ * // 3
+ *
+ * @example
+ * getArrayLargestItem([10,'hello',3])
+ * // 10
+ *
+ * @example
+ * getArrayLargestItem(['a','ab','abc'])
+ * // 'abc'
+ */
+export function getArrayLargestItem(items, returnRealItem = true, resolveIssues = true) {
+    if (!Array.isArray(items) || items.length === 0) {
+        if (resolveIssues) return 0;
+        throw new Error('items must be a non-empty array');
+    }
+
+    let largestItem = null;
+    let largestValue = null;
+
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        let value = null;
+
+        if (typeof item === 'number' && Number.isFinite(item)) {
+            value = item;
+        } 
+        else if (typeof item === 'string') {
+            value = item.length;
+        }
+
+        if (value === null) continue;
+
+        if (largestValue === null || value > largestValue) {
+            largestValue = value;
+            largestItem = item;
+        }
+    }
+
+    if (largestValue === null) {
+        if (resolveIssues) return 0;
+        throw new Error('No valid items found');
+    }
+
+    return returnRealItem ? largestItem : largestValue;
+}
