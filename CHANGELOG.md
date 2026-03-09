@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.91](https://github.com/lcsnigeria/lcsTools/compare/v0.0.90...v0.0.91) (2026-03-09)
+
+
+### Features
+
+* **arrayOps:** add getArrayLargestItem function for array analysis ([df6dc86](https://github.com/lcsnigeria/lcsTools/commit/df6dc86b1553b672882ac23c7da2ab47a7dfa628))
+
 ### [0.0.90](https://github.com/lcsnigeria/lcsTools/compare/v0.0.89...v0.0.90) (2026-03-06)
 
 
