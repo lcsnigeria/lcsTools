@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.92](https://github.com/lcsnigeria/lcsTools/compare/v0.0.91...v0.0.92) (2026-11-25)
+
+
+### Features
+
+* sanitizePastedContent functionalities added ([733eee1](https://github.com/lcsnigeria/lcsTools/commit/733eee1027a6db1d9e720376d9b3d645723ae2e5))
+
 ### [0.0.91](https://github.com/lcsnigeria/lcsTools/compare/v0.0.90...v0.0.91) (2026-03-09)
 
 
